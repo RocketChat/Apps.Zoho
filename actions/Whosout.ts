@@ -1,10 +1,8 @@
 import { IHttp, IModify, IPersistence, IRead } from '@rocket.chat/apps-engine/definition/accessors';
 import { IMessageAttachmentField } from '@rocket.chat/apps-engine/definition/messages/IMessageAttachmentField';
-import { IRoom } from '@rocket.chat/apps-engine/definition/rooms';
 import { IUser } from '@rocket.chat/apps-engine/definition/users';
 
-import { AppSetting } from '../settings';
-import { formatDate, isDateBetween } from '../utils';
+import { isDateBetween, formatDate, getDirect } from '../utils';
 import { ZohoApp } from '../ZohoApp';
 
 export class Whosout {
@@ -26,39 +24,68 @@ export class Whosout {
         if (result && result.content && result.content.length > 0) {
             const messageBuilder = await modify.getCreator().startMessage()
                 .setSender(this.app.botUser)
-                .setRoom(this.app.whosoutRoom)
                 .setUsernameAlias(this.app.zohoName)
                 .setEmojiAvatar(this.app.zohoEmojiAvatar);
 
-            const today = new Date();
-            const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-            const fields: Array<IMessageAttachmentField> = [];
+            if (user) {
+                const room = await getDirect(this.app, read, modify, user.username);
+                if (!room) {
+                    return;
+                }
+                messageBuilder.setRoom(room);
+            } else {
+                messageBuilder.setRoom(this.app.whosoutRoom);
+            }
 
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            let next;
+            let monday = false;
+            if (today.getDay() === 5) { // If Friday, next is Monday
+                monday = true;
+                next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 3);
+            } else {
+                next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+            }
+
+            const fields: Array<IMessageAttachmentField> = [];
             const outToday: Array<string> = [];
-            const outTomorrow: Array<string> = [];
+            const outNext: Array<string> = [];
             for (const leave of result.data) {
                 const from = new Date(leave.From);
                 const to = new Date(leave.To);
-                if (isDateBetween(today, from, to)) {
-                    outToday.push(leave.ownerName + (leave.ApprovalStatus === 'Pending' ? ' (pending)':  ''));
+                const amount = parseInt(leave['Days Taken'], 10);
+                let info = '';
+                if (leave['Leave Type'] === 'Half Day') {
+                    info += `, ${amount} hours`;
+                } else if (leave['Days Taken'] > 1) {
+                    info += `, ${amount} days, until ${leave.To}`;
                 }
-                if (isDateBetween(tomorrow, from, to)) {
-                    outTomorrow.push(leave.ownerName + (leave.ApprovalStatus === 'Pending' ? ' (pending)' : ''));
+
+                if (leave.ApprovalStatus === 'Pending') {
+                    info += ' _(pending)_';
+                }
+
+                const who = `*${leave.ownerName}*${info}`;
+                if (isDateBetween(today, from, to)) {
+                    outToday.push(who);
+                } else if (isDateBetween(next, from, to)) {
+                    outNext.push(who);
                 }
             }
 
             if (outToday.length > 0) {
                 fields.push({
-                    title: `Out today (${formatDate(today)}):`,
+                    title: `Out today:`,
                     value: outToday.join('\n'),
                     short: true,
                 });
             }
 
-            if (outTomorrow.length > 0) {
+            if (outNext.length > 0) {
                 fields.push({
-                    title: `Out tomorrow (${formatDate(tomorrow)}):`,
-                    value: outTomorrow.join('\n'),
+                    title: `Out ${monday ? 'on Monday' : 'tomorrow'}:`,
+                    value: outNext.join('\n'),
                     short: true,
                 });
             }
