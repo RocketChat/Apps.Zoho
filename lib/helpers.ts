@@ -1,5 +1,5 @@
 import { IModify, IRead } from '@rocket.chat/apps-engine/definition/accessors';
-import { IMessageAttachment } from '@rocket.chat/apps-engine/definition/messages';
+import { IMessageAttachment, MessageType } from '@rocket.chat/apps-engine/definition/messages';
 import { IRoom, RoomType } from '@rocket.chat/apps-engine/definition/rooms';
 import { IUser } from '@rocket.chat/apps-engine/definition/users';
 import { ZohoApp } from '../ZohoApp';
@@ -16,25 +16,17 @@ import { ZohoApp } from '../ZohoApp';
 export async function getDirect(app: ZohoApp, read: IRead, modify: IModify, username: string): Promise <IRoom | undefined > {
     if (app.botUsername) {
         const usernames = [app.botUsername, username];
-        let room;
-        try {
-            room = await read.getRoomReader().getDirectByUsernames(usernames);
-        } catch (error) {
-            app.getLogger().log(error);
-            return;
-        }
+        const room = await read.getRoomReader().getDirectByUsernames(usernames);
 
         if (room) {
             return room;
         } else if (app.botUser) {
-            let roomId;
-
             // Create direct room between botUser and username
             const newRoom = modify.getCreator().startRoom()
                 .setType(RoomType.DIRECT_MESSAGE)
                 .setCreator(app.botUser)
                 .setUsernames(usernames);
-            roomId = await modify.getCreator().finish(newRoom);
+            const roomId = await modify.getCreator().finish(newRoom);
             return await read.getRoomReader().getById(roomId);
         }
     }
@@ -50,7 +42,7 @@ export async function getDirect(app: ZohoApp, read: IRead, modify: IModify, user
  * @param message What to send
  * @param attachments (optional) Message attachments (such as action buttons)
  */
-export async function sendMessage(app: ZohoApp, modify: IModify, room: IRoom, message: string, attachments?: Array<IMessageAttachment>): Promise<void> {
+export async function sendMessage(app: ZohoApp, modify: IModify, room: IRoom, message: string, attachments?: Array<IMessageAttachment>, discussionRoom?: IRoom): Promise<void> {
     const msg = modify.getCreator().startMessage()
         .setGroupable(false)
         .setSender(app.botUser)
@@ -61,11 +53,11 @@ export async function sendMessage(app: ZohoApp, modify: IModify, room: IRoom, me
     if (attachments && attachments.length > 0) {
         msg.setAttachments(attachments);
     }
-    try {
-        await modify.getCreator().finish(msg);
-    } catch (error) {
-        app.getLogger().log(error);
+    if (discussionRoom) {
+        msg.setType(MessageType.DISCUSSION_CREATED);
+        msg.setDiscussionRoom(discussionRoom);
     }
+    await modify.getCreator().finish(msg);
 }
 
 /**
@@ -85,9 +77,45 @@ export async function notifyUser(app: ZohoApp, modify: IModify, room: IRoom, use
         .setText(message)
         .setRoom(room)
         .getMessage();
-    try {
-        await modify.getNotifier().notifyUser(user, msg);
-    } catch (error) {
-        app.getLogger().log(error);
+
+    await modify.getNotifier().notifyUser(user, msg);
+}
+
+export function monthName(month) {
+    switch (month) {
+        case '01':
+            return 'January';
+        case '02':
+            return 'February';
+        case '03':
+            return 'March';
+        case '04':
+            return 'April';
+        case '05':
+            return 'May';
+        case '06':
+            return 'June';
+        case '07':
+            return 'July';
+        case '08':
+            return 'August';
+        case '09':
+            return 'September';
+        case '10':
+            return 'October';
+        case '11':
+            return 'November';
+        case '12':
+            return 'December';
+        default:
+            return '';
     }
+}
+
+export function uuid(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
 }

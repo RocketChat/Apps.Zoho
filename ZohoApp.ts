@@ -1,13 +1,23 @@
-import { IAppAccessors, IConfigurationExtend, IConfigurationModify, IEnvironmentRead, IHttp, ILogger, IRead } from '@rocket.chat/apps-engine/definition/accessors';
+import {
+    IAppAccessors,
+    IConfigurationExtend,
+    IConfigurationModify,
+    IEnvironmentRead,
+    IHttp,
+    ILogger,
+    IRead,
+} from '@rocket.chat/apps-engine/definition/accessors';
 import { ApiSecurity, ApiVisibility } from '@rocket.chat/apps-engine/definition/api';
 import { App } from '@rocket.chat/apps-engine/definition/App';
 import { IAppInfo } from '@rocket.chat/apps-engine/definition/metadata';
-import { ISetting } from '@rocket.chat/apps-engine/definition/settings';
 import { IRoom } from '@rocket.chat/apps-engine/definition/rooms';
+import { ISetting } from '@rocket.chat/apps-engine/definition/settings';
 import { IUser } from '@rocket.chat/apps-engine/definition/users';
 
+import { Birthday } from './actions/Birthday';
 import { Whosout } from './actions/Whosout';
 import { ZohoCommand } from './commands/ZohoCommand';
+import { BirthdayEndpoint } from './endpoints/Birthday';
 import { WhosOutEndpoint } from './endpoints/WhosOut';
 import { AppSetting, settings } from './settings';
 
@@ -41,21 +51,27 @@ export class ZohoApp extends App {
     /**
      * The room name where to get members from
      */
-    public whosoutRoomName: string;
+    public zohoRoomName: string;
 
     /**
      * The actual room object where to get members from
      */
-    public whosoutRoom: IRoom;
+    public zohoRoom: IRoom;
 
     /**
      * The whosout mechanism
      */
     public readonly whosout: Whosout;
 
+    /**
+     * The birthday mechanism
+     */
+    public readonly birthday: Birthday;
+
     constructor(info: IAppInfo, logger: ILogger, accessors: IAppAccessors) {
         super(info, logger, accessors);
         this.whosout = new Whosout(this);
+        this.birthday = new Birthday(this);
     }
 
     /**
@@ -76,9 +92,9 @@ export class ZohoApp extends App {
 
         this.peopleToken = await environmentRead.getSettings().getValueById(AppSetting.PeopleToken);
 
-        this.whosoutRoomName = await environmentRead.getSettings().getValueById(AppSetting.WhosoutRoom);
-        if (this.whosoutRoomName) {
-            this.whosoutRoom = await this.getAccessors().reader.getRoomReader().getByName(this.whosoutRoomName) as IRoom;
+        this.zohoRoomName = await environmentRead.getSettings().getValueById(AppSetting.ZohoRoom);
+        if (this.zohoRoomName) {
+            this.zohoRoom = await this.getAccessors().reader.getRoomReader().getByName(this.zohoRoomName) as IRoom;
         } else {
             return false;
         }
@@ -105,10 +121,10 @@ export class ZohoApp extends App {
             case AppSetting.PeopleToken:
                 this.peopleToken = setting.value;
                 break;
-            case AppSetting.WhosoutRoom:
-                this.whosoutRoomName = setting.value;
-                if (this.whosoutRoomName) {
-                    this.whosoutRoom = await this.getAccessors().reader.getRoomReader().getByName(this.whosoutRoomName) as IRoom;
+            case AppSetting.ZohoRoom:
+                this.zohoRoomName = setting.value;
+                if (this.zohoRoomName) {
+                    this.zohoRoom = await this.getAccessors().reader.getRoomReader().getByName(this.zohoRoomName) as IRoom;
                 }
                 break;
         }
@@ -123,6 +139,7 @@ export class ZohoApp extends App {
             security: ApiSecurity.UNSECURE,
             endpoints: [
                 new WhosOutEndpoint(this),
+                new BirthdayEndpoint(this),
             ],
         });
 

@@ -8,7 +8,7 @@ export async function processHelpCommand(app: ZohoApp, context: SlashCommandCont
     const sender = context.getSender();
     const room = await getDirect(app, read, modify, sender.username) as IRoom;
     const message = `These are the commands I can understand:
-        \`/zoho whosout\` Shows people out today, tomorrow and holidays
+        \`/zoho whosout\` Shows people out today, tomorrow
         \`/zoho help\` Shows this message`;
 
     await sendMessage(app, modify, room, message);

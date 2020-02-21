@@ -2,7 +2,7 @@ import { IHttp, IModify, IPersistence, IRead } from '@rocket.chat/apps-engine/de
 import { IMessageAttachmentField } from '@rocket.chat/apps-engine/definition/messages/IMessageAttachmentField';
 import { IUser } from '@rocket.chat/apps-engine/definition/users';
 
-import { isDateBetween, formatDate, getDirect } from '../utils';
+import { getDirect, isDateBetween } from '../utils';
 import { ZohoApp } from '../ZohoApp';
 
 export class Whosout {
@@ -34,7 +34,7 @@ export class Whosout {
                 }
                 messageBuilder.setRoom(room);
             } else {
-                messageBuilder.setRoom(this.app.whosoutRoom);
+                messageBuilder.setRoom(this.app.zohoRoom);
             }
 
             const now = new Date();
@@ -52,25 +52,27 @@ export class Whosout {
             const outToday: Array<string> = [];
             const outNext: Array<string> = [];
             for (const leave of result.data) {
-                const from = new Date(leave.From);
-                const to = new Date(leave.To);
-                const amount = parseInt(leave['Days Taken'], 10);
-                let info = '';
-                if (leave['Leave Type'] === 'Half Day') {
-                    info += `, ${amount} hours`;
-                } else if (leave['Days Taken'] > 1) {
-                    info += `, ${amount} days, until ${leave.To}`;
-                }
+                if (leave.ApprovalStatus === 'Approved' || leave.ApprovalStatus === 'Pending') {
+                    const from = new Date(leave.From);
+                    const to = new Date(leave.To);
+                    const amount = parseInt(leave['Days Taken'], 10);
+                    let info = '';
+                    if (leave['Leave Type'] === 'Half Day' || leave['Leave Type'] === 'Doctor&#39;s Appointment') {
+                        info += `, ${amount} hours`;
+                    } else if (leave['Days Taken'] > 1) {
+                        info += `, ${amount} days, until ${leave.To}`;
+                    }
 
-                if (leave.ApprovalStatus === 'Pending') {
-                    info += ' _(pending)_';
-                }
+                    if (leave.ApprovalStatus === 'Pending') {
+                        info += ' _(pending)_';
+                    }
 
-                const who = `*${leave.ownerName}*${info}`;
-                if (isDateBetween(today, from, to)) {
-                    outToday.push(who);
-                } else if (isDateBetween(next, from, to)) {
-                    outNext.push(who);
+                    const who = `*${leave.ownerName}*${info}`;
+                    if (isDateBetween(today, from, to)) {
+                        outToday.push(who);
+                    } else if (isDateBetween(next, from, to)) {
+                        outNext.push(who);
+                    }
                 }
             }
 

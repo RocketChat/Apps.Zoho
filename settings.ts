@@ -3,7 +3,7 @@ import { ISetting, SettingType } from '@rocket.chat/apps-engine/definition/setti
 export enum AppSetting {
     BotUsername = 'bot_username',
     PeopleToken = 'people_token',
-    WhosoutRoom = 'whosout_room',
+    ZohoRoom = 'zoho_room',
 }
 
 export const settings: Array<ISetting> = [
@@ -26,12 +26,12 @@ export const settings: Array<ISetting> = [
         i18nDescription: 'people_token_description',
     },
     {
-        id: AppSetting.WhosoutRoom,
+        id: AppSetting.ZohoRoom,
         type: SettingType.STRING,
         packageValue: '',
         required: true,
         public: true,
-        i18nLabel: 'whosout_room',
-        i18nDescription: 'whosout_room_description',
+        i18nLabel: 'zoho_room',
+        i18nDescription: 'zoho_room_description',
     },
 ];
