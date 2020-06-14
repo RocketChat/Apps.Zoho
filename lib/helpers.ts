@@ -1,5 +1,5 @@
 import { IModify, IRead } from '@rocket.chat/apps-engine/definition/accessors';
-import { IMessageAttachment, MessageType } from '@rocket.chat/apps-engine/definition/messages';
+import { IMessageAttachment } from '@rocket.chat/apps-engine/definition/messages';
 import { IRoom, RoomType } from '@rocket.chat/apps-engine/definition/rooms';
 import { IUser } from '@rocket.chat/apps-engine/definition/users';
 import { ZohoApp } from '../ZohoApp';
@@ -52,10 +52,6 @@ export async function sendMessage(app: ZohoApp, modify: IModify, room: IRoom, me
         .setRoom(room);
     if (attachments && attachments.length > 0) {
         msg.setAttachments(attachments);
-    }
-    if (discussionRoom) {
-        msg.setType(MessageType.DISCUSSION_CREATED);
-        msg.setDiscussionRoom(discussionRoom);
     }
     await modify.getCreator().finish(msg);
 }

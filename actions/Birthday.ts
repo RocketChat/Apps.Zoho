@@ -1,12 +1,10 @@
 import { IHttp, IModify, IPersistence, IRead } from '@rocket.chat/apps-engine/definition/accessors';
-import { IMessageAttachmentField } from '@rocket.chat/apps-engine/definition/messages/IMessageAttachmentField';
-import { RoomType } from '@rocket.chat/apps-engine/definition/rooms';
+import { IMessageAttachmentField } from '@rocket.chat/apps-engine/definition/messages';
 import { IUser } from '@rocket.chat/apps-engine/definition/users';
 
+import { getDirect, sendMessage, uuid } from '../lib/helpers';
 import { IBirthday } from '../lib/IBirthday';
-import { getDirect } from '../utils';
 import { ZohoApp } from '../ZohoApp';
-import { sendMessage, uuid } from '../lib/helpers';
 
 export class Birthday {
 
@@ -45,7 +43,7 @@ export class Birthday {
             const bdMonth: Array<IBirthday> = [];
             for (const person of result.data) {
                 if (person['Birth Date']) {
-                    let [month, day] = person['Birth Date'].split('-');
+                    const [month, day] = person['Birth Date'].split('-');
                     const name = person.ownerName;
                     const username = person['Email ID'].split('@')[0];
                     const birthday: IBirthday = { name, username, day: parseInt(day, 10), month: parseInt(month, 10) };
@@ -79,15 +77,17 @@ export class Birthday {
                     const last = bdToday.pop() as IBirthday;
                     bdPeople = bdToday.map((birthday) => birthday.username).join(', @') + ` and @${last.username}`;
                 }
-                const msg = `Happy Birthday @${bdPeople}`;
-                const newRoom = modify.getCreator().startRoom()
-                    .setDisplayName(msg)
-                    .setSlugifiedName(uuid())
-                    .setType(RoomType.PRIVATE_GROUP)
+
+                await sendMessage(this.app, modify, this.app.zohoRoom, `Let's wish a happy birthday to @${bdPeople} :point_down:`);
+
+                const id = uuid();
+                const discussion = await modify.getCreator().startDiscussion()
                     .setParentRoom(this.app.zohoRoom)
+                    .setReply(`Happy Birthday @${bdPeople}`)
+                    .setDisplayName(`Happy Birthday - @${bdPeople}`)
+                    .setSlugifiedName(id)
                     .setCreator(this.app.botUser);
-                const rid = await modify.getCreator().finish(newRoom);
-                sendMessage(this.app, modify, this.app.zohoRoom, msg, undefined, await read.getRoomReader().getById(rid));
+                await modify.getCreator().finish(discussion);
             }
         }
     }
