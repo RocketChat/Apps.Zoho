@@ -11,7 +11,10 @@ export function getMonthAndDay(date: Date): string {
     return `${ (date.getMonth() < 9 ? '0' : '') + (date.getMonth() + 1) }-${ (date.getDate() < 10 ? '0' : '') + date.getDate() }`;
 }
 
-export function isDateBetween(date: Date, from: Date, to: Date): boolean {
+export function isDateBetween(date: Date, from: Date, to?: Date): boolean {
+    if (!to) {
+        to = new Date(from.getFullYear(), from.getMonth(), from.getDate() + 1);
+    }
     return date.getTime() >= from.getTime() && date.getTime() <= to.getTime();
 }
 

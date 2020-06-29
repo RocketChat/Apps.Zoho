@@ -49,6 +49,11 @@ export class ZohoApp extends App {
     public peopleToken: string;
 
     /**
+     * The list of countries to fetch holidays from, from settings
+     */
+    public holidayCountries: string;
+
+    /**
      * The room name where to get members from
      */
     public zohoRoomName: string;
@@ -98,6 +103,8 @@ export class ZohoApp extends App {
         } else {
             return false;
         }
+
+        this.holidayCountries = await environmentRead.getSettings().getValueById(AppSetting.HolidayCountries);
 
         return true;
     }
