@@ -40,13 +40,7 @@ export class Whosout {
             if (leave.ApprovalStatus === 'Approved' || leave.ApprovalStatus === 'Pending') {
                 const from = new Date(leave.From);
                 const to = new Date(leave.To);
-                const amount = parseInt(leave['Days Taken'], 10);
-                let info = '';
-                if (leave['Leave Type'] === 'Half Day' || leave['Leave Type'] === 'Doctor&#39;s Appointment') {
-                    info += `, ${amount} hours`;
-                } else if (leave['Days Taken'] > 1) {
-                    info += `, ${amount} days, until ${leave.To}`;
-                }
+                let info = leave['Days/Hours Taken'];
 
                 if (leave.ApprovalStatus === 'Pending') {
                     info += ' _(pending)_';
