@@ -46,7 +46,7 @@ export class Whosout {
                     info += ' _(pending)_';
                 }
 
-                const who = `*${leave.ownerName}*${info}`;
+                const who = `*${leave.ownerName}* ${info}`;
                 if (isDateBetween(today, from, to)) {
                     outToday.push(who);
                 } else if (isDateBetween(next, from, to)) {
