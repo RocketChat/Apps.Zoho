@@ -40,13 +40,14 @@ export class Whosout {
             if (leave.ApprovalStatus === 'Approved' || leave.ApprovalStatus === 'Pending') {
                 const from = new Date(leave.From);
                 const to = new Date(leave.To);
-                let info = leave['Days/Hours Taken'];
+                const amount = leave['Days/Hours Taken'];
+                let info = `, ${amount}, until ${leave.To}`;
 
                 if (leave.ApprovalStatus === 'Pending') {
                     info += ' _(pending)_';
                 }
 
-                const who = `*${leave.ownerName}* ${info}`;
+                const who = `*${leave.ownerName}*${info}`;
                 if (isDateBetween(today, from, to)) {
                     outToday.push(who);
                 } else if (isDateBetween(next, from, to)) {
