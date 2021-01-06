@@ -5,8 +5,8 @@
     "Zoho_Bot_Username_Description": "The username who'll send the messages",
     "people_token": "Zoho People Token",
     "people_token_description": "Token for accessing Zoho People API",
-    "zoho_room": "Who Is Out Room",
-    "zoho_room_description": "Where to post Who Is Out information",
+    "zoho_room": "Zoho Room",
+    "zoho_room_description": "Where to post Zoho messages",
     "holiday_countries": "Holiday Countries",
     "holiday_countries_description": "List of countries to fetch holidays from"
 }

@@ -15,9 +15,11 @@ import { ISetting } from '@rocket.chat/apps-engine/definition/settings';
 import { IUser } from '@rocket.chat/apps-engine/definition/users';
 
 import { Birthday } from './actions/Birthday';
+import { Anniversary } from './actions/Anniversary';
 import { Whosout } from './actions/Whosout';
 import { ZohoCommand } from './commands/ZohoCommand';
 import { BirthdayEndpoint } from './endpoints/Birthday';
+import { AnniversaryEndpoint } from './endpoints/Anniversary';
 import { WhosOutEndpoint } from './endpoints/WhosOut';
 import { AppSetting, settings } from './settings';
 
@@ -73,10 +75,16 @@ export class ZohoApp extends App {
      */
     public readonly birthday: Birthday;
 
+    /**
+     * The anniversary mechanism
+     */
+    public readonly anniversary: Anniversary;
+
     constructor(info: IAppInfo, logger: ILogger, accessors: IAppAccessors) {
         super(info, logger, accessors);
         this.whosout = new Whosout(this);
         this.birthday = new Birthday(this);
+        this.anniversary = new Anniversary(this);
     }
 
     /**
@@ -147,6 +155,7 @@ export class ZohoApp extends App {
             endpoints: [
                 new WhosOutEndpoint(this),
                 new BirthdayEndpoint(this),
+                new AnniversaryEndpoint(this),
             ],
         });
 

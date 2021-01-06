@@ -4,7 +4,6 @@ import { IUser } from '@rocket.chat/apps-engine/definition/users';
 
 import { getDirect, isDateBetween } from '../utils';
 import { ZohoApp } from '../ZohoApp';
-import { isDate } from 'util';
 
 export class Whosout {
 
