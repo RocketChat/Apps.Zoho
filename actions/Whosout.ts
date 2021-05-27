@@ -57,27 +57,6 @@ export class Whosout {
             }
         }
 
-        if (outToday.length > 0) {
-            fields.push({
-                title: `Out today:`,
-                value: outToday.join('\n'),
-                short: true,
-            });
-        }
-
-        if (outNext.length > 0) {
-            fields.push({
-                title: `Out ${monday ? 'on Monday' : 'tomorrow'}:`,
-                value: outNext.join('\n'),
-                short: true,
-            });
-        }
-
-        if (fields.length > 0) {
-            attachments.push({ fields, color: 'red' });
-            fields = [];
-        }
-
         const locations = {};
         const urlUsers = `https://people.zoho.com/people/api/forms/P_EmployeeView/records?authtoken=${this.app.peopleToken}`;
         const resultUsers = await http.get(urlUsers);
@@ -126,48 +105,75 @@ export class Whosout {
         if (Object.keys(locations).length > 0) {
             for (const location of Object.keys(locations)) {
                 if (locations[location].holidayToday.length > 0) {
-                    fields.push({
-                        title: `Holiday today in ${location}:`,
-                        value: `${locations[location].holidayToday.join('\n')}\n\n*People in ${location}:*\n${locations[location].people.join('\n')}`,
-                        short: true,
-                    });
+                    // fields.push({
+                    //     title: `Holiday today in ${location}:`,
+                    //     value: `${locations[location].holidayToday.join('\n')}\n\n*People in ${location}:*\n${locations[location].people.join('\n')}`,
+                    //     short: true,
+                    // });
+                    for (const person of locations[location].people) {
+                        outToday.push(`${person} (Holiday, ${ location })`);
+                    }
                 }
 
                 if (locations[location].holidayNext.length > 0) {
-                    fields.push({
-                        title: `Holiday ${ monday ? 'on Monday': 'tomorrow' } in ${location}:`,
-                        value: `${locations[location].holidayNext.join('\n')}\n\n*People in ${location}:*\n${locations[location].people.join('\n')}`,
-                        short: true,
-                    });
+                    // fields.push({
+                    //     title: `Holiday ${ monday ? 'on Monday': 'tomorrow' } in ${location}:`,
+                    //     value: `${locations[location].holidayNext.join('\n')}\n\n*People in ${location}:*\n${locations[location].people.join('\n')}`,
+                    //     short: true,
+                    // });
+                    for (const person of locations[location].people) {
+                        outNext.push(`${person} (Holiday, ${ location })`);
+                    }
                 }
 
-                if (fields.length > 0) {
-                    attachments.push({ fields, color: 'orange' });
-                    fields = [];
-                }
+                // if (fields.length > 0) {
+                //     attachments.push({ fields, color: 'orange' });
+                //     fields = [];
+                // }
 
-                if (locations[location].holidayWeekend.length > 0) {
-                    fields.push({
-                        title: `Holiday past weekend in ${location}:`,
-                        value: `${locations[location].holidayWeekend.join('\n')}\n\n*People in ${location}:*\n${locations[location].people.join('\n')}`,
-                        short: true,
-                    });
-                }
+                // if (locations[location].holidayWeekend.length > 0) {
+                //     fields.push({
+                //         title: `Holiday past weekend in ${location}:`,
+                //         value: `${locations[location].holidayWeekend.join('\n')}\n\n*People in ${location}:*\n${locations[location].people.join('\n')}`,
+                //         short: true,
+                //     });
+                // }
 
-                if (locations[location].holidayNextWeekend.length > 0) {
-                    fields.push({
-                        title: `Holiday next weekend in ${location}:`,
-                        value: `${locations[location].holidayNextWeekend.join('\n')}\n\n*People in ${location}:*\n${locations[location].people.join('\n')}`,
-                        short: true,
-                    });
-                }
+                // if (locations[location].holidayNextWeekend.length > 0) {
+                //     fields.push({
+                //         title: `Holiday next weekend in ${location}:`,
+                //         value: `${locations[location].holidayNextWeekend.join('\n')}\n\n*People in ${location}:*\n${locations[location].people.join('\n')}`,
+                //         short: true,
+                //     });
+                // }
 
 
-                if (fields.length > 0) {
-                    attachments.push({ fields, color: 'orange' });
-                    fields = [];
-                }
+                // if (fields.length > 0) {
+                //     attachments.push({ fields, color: 'orange' });
+                //     fields = [];
+                // }
             }
+        }
+
+        if (outToday.length > 0) {
+            fields.push({
+                title: `Out today:`,
+                value: outToday.join('\n'),
+                short: true,
+            });
+        }
+
+        if (outNext.length > 0) {
+            fields.push({
+                title: `Out ${monday ? 'on Monday' : 'tomorrow'}:`,
+                value: outNext.join('\n'),
+                short: true,
+            });
+        }
+
+        if (fields.length > 0) {
+            attachments.push({ fields, color: 'red' });
+            fields = [];
         }
 
         if (attachments.length === 0) {

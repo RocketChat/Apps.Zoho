@@ -4,7 +4,6 @@ export enum AppSetting {
     BotUsername = 'bot_username',
     PeopleToken = 'people_token',
     ZohoRoom = 'zoho_room',
-    HolidayCountries = 'holiday_countries',
 }
 
 export const settings: Array<ISetting> = [
@@ -34,14 +33,5 @@ export const settings: Array<ISetting> = [
         public: true,
         i18nLabel: 'zoho_room',
         i18nDescription: 'zoho_room_description',
-    },
-    {
-        id: AppSetting.HolidayCountries,
-        type: SettingType.STRING,
-        packageValue: 'us,br',
-        required: true,
-        public: true,
-        i18nLabel: 'holiday_countries',
-        i18nDescription: 'holiday_countries_description',
     },
 ];
