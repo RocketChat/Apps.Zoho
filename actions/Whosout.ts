@@ -159,7 +159,6 @@ export class Whosout {
             fields.push({
                 title: `Out today:`,
                 value: outToday.join('\n'),
-                short: true,
             });
         }
 
@@ -167,7 +166,6 @@ export class Whosout {
             fields.push({
                 title: `Out ${monday ? 'on Monday' : 'tomorrow'}:`,
                 value: outNext.join('\n'),
-                short: true,
             });
         }
 
