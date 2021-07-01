@@ -59,7 +59,7 @@ export class Birthday {
                 return a.day - b.day;
             });
 
-            if (new Date().getDate() === 1 && bdMonth.length > 0) {
+            if (user || (new Date().getDate() === 1 && bdMonth.length > 0)) {
                 fields.push({
                     title: `Birthdays this month:`,
                     value: '\n' + bdMonth.map((birthday) => `${birthday.name}, ${birthday.day}`).join('\n'),
@@ -69,7 +69,7 @@ export class Birthday {
                 modify.getCreator().finish(messageBuilder);
             }
 
-            if (bdToday.length > 0) {
+            if (!user && bdToday.length > 0) {
                 let bdPeople;
                 if (bdToday.length === 1) {
                     bdPeople = bdToday[0].username;
