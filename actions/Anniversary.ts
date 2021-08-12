@@ -19,6 +19,7 @@ export class Anniversary {
      */
     // tslint:disable-next-line:max-line-length
     public async run(read: IRead, modify: IModify, http: IHttp, persistence: IPersistence, user?: IUser, params?: Array<string>) {
+        const appUser = await read.getUserReader().getAppUser(this.app.getID());
         const url = `https://people.zoho.com/people/api/forms/P_EmployeeView/records?authtoken=${this.app.peopleToken}`;
         const result = await http.get(url);
         if (result && result.content && result.content.length > 0) {
@@ -29,7 +30,7 @@ export class Anniversary {
             ];
 
             const messageBuilder = await modify.getCreator().startMessage()
-                .setSender(this.app.botUser)
+                .setSender(appUser as IUser)
                 .setUsernameAlias(this.app.zohoName)
                 .setEmojiAvatar(this.app.zohoEmojiAvatar);
 
@@ -79,7 +80,7 @@ export class Anniversary {
                         .replace('{years}', years)
                         .replace('{_years}', parseInt(years, 10) > 1 ? 'years' : 'years');
 
-                    await sendMessage(this.app, modify, this.app.zohoRoom, message);
+                    await sendMessage(this.app, read, modify, this.app.zohoRoom, message);
                 }
             }
         }

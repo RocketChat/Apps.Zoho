@@ -11,21 +11,21 @@ import { ZohoApp } from '../ZohoApp';
  * @param read
  * @param modify
  * @param username the username to create a direct with bot
- * @returns the room or undefined if botUser or botUsername is not set
+ * @returns the room or undefined
  */
 export async function getDirect(app: ZohoApp, read: IRead, modify: IModify, username: string): Promise <IRoom | undefined > {
-    if (app.botUsername) {
-        const usernames = [app.botUsername, username];
+    const appUser = await read.getUserReader().getAppUser(app.getID());
+    if (appUser && appUser.username) {
+        const usernames = [appUser.username, username];
         const room = await read.getRoomReader().getDirectByUsernames(usernames);
 
         if (room) {
             return room;
-        } else if (app.botUser) {
-            // Create direct room between botUser and username
+        } else if (appUser) {
             const newRoom = modify.getCreator().startRoom()
                 .setType(RoomType.DIRECT_MESSAGE)
-                .setCreator(app.botUser)
-                .setUsernames(usernames);
+                .setCreator(appUser)
+                .setMembersToBeAddedByUsernames(usernames);
             const roomId = await modify.getCreator().finish(newRoom);
             return await read.getRoomReader().getById(roomId);
         }
@@ -42,10 +42,11 @@ export async function getDirect(app: ZohoApp, read: IRead, modify: IModify, user
  * @param message What to send
  * @param attachments (optional) Message attachments (such as action buttons)
  */
-export async function sendMessage(app: ZohoApp, modify: IModify, room: IRoom, message: string, attachments?: Array<IMessageAttachment>, discussionRoom?: IRoom): Promise<void> {
-    const msg = modify.getCreator().startMessage()
+export async function sendMessage(app: ZohoApp, read: IRead, modify: IModify, room: IRoom, message: string, attachments?: Array<IMessageAttachment>, discussionRoom?: IRoom): Promise<void> {
+        const appUser = await read.getUserReader().getAppUser(app.getID());
+        const msg = modify.getCreator().startMessage()
         .setGroupable(false)
-        .setSender(app.botUser)
+        .setSender(appUser as IUser)
         .setUsernameAlias(app.zohoName)
         .setEmojiAvatar(app.zohoEmojiAvatar)
         .setText(message)
@@ -65,9 +66,10 @@ export async function sendMessage(app: ZohoApp, modify: IModify, room: IRoom, me
  * @param message What to send
  * @param attachments (optional) Message attachments (such as action buttons)
  */
-export async function notifyUser(app: ZohoApp, modify: IModify, room: IRoom, user: IUser, message: string, attachments?: Array<IMessageAttachment>): Promise<void> {
-    const msg = modify.getCreator().startMessage()
-        .setSender(app.botUser)
+export async function notifyUser(app: ZohoApp, read: IRead, modify: IModify, room: IRoom, user: IUser, message: string, attachments?: Array<IMessageAttachment>): Promise<void> {
+        const appUser = await read.getUserReader().getAppUser(app.getID());
+        const msg = modify.getCreator().startMessage()
+        .setSender(appUser as IUser)
         .setUsernameAlias(app.zohoName)
         .setEmojiAvatar(app.zohoEmojiAvatar)
         .setText(message)

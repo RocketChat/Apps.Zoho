@@ -20,6 +20,7 @@ export class Whosout {
      */
     // tslint:disable-next-line:max-line-length
     public async run(read: IRead, modify: IModify, http: IHttp, persistence: IPersistence, user?: IUser, params?: Array<string>) {
+        const appUser = await read.getUserReader().getAppUser(this.app.getID());
         const urlPeople = `https://people.zoho.com/people/api/forms/P_EmployeeView/records?authtoken=${this.app.peopleToken}`;
         const peopleResult = await http.get(urlPeople);
         const people = {};
@@ -41,6 +42,7 @@ export class Whosout {
         let fields: Array<IMessageAttachmentField> = [];
         const outToday: Array<string> = [];
         const outNext: Array<string> = [];
+        const departments: any = {};
 
         const url = `https://people.zoho.com/people/api/forms/P_ApplyLeaveView/records?authtoken=${this.app.peopleToken}`;
         const result = await http.get(url);
@@ -52,17 +54,37 @@ export class Whosout {
                 const from = new Date(leave.From);
                 const to = new Date(leave.To);
                 const amount = leave['Days/Hours Taken'];
-                let info = `, ${ (person && person['Department']) || '-' }, ${amount.replace('.0', '')} ${leave.Unit.toLowerCase()}${parseInt(amount) > 1 ? 's' : ''}${leave.Unit === 'Hour' ? '' : `, until ${leave.To}`}`;
+                const department = (person && person['Department']) || '-';
+                let info = `, ${ department }, ${amount.replace('.0', '')} ${leave.Unit.toLowerCase()}${parseInt(amount) > 1 ? 's' : ''}${leave.Unit === 'Hour' ? '' : `, until ${leave.To}`}`;
 
                 if (leave.ApprovalStatus === 'Pending') {
                     info += ' _(pending)_';
                 }
 
                 const who = `*${ (person && person['Website Display Name']) || leave.ownerName }*${info}`;
-                if (isDateBetween(today, from, to)) {
-                    outToday.push(who);
-                } else if (isDateBetween(next, from, to)) {
-                    outNext.push(who);
+                const out: any = {};
+                out.from = from;
+                out.to = to;
+                out.who = who;
+
+                if (!departments[department]) {
+                    departments[department] = [];
+                }
+                departments[department].push(out);
+                // if (isDateBetween(today, from, to)) {
+                //     outToday.push(who);
+                // } else if (isDateBetween(next, from, to)) {
+                //     outNext.push(who);
+                // }
+            }
+        }
+
+        for (const department of Object.keys(departments)) {
+            for (const out of departments[department]) {
+                if (isDateBetween(today, out.from, out.to)) {
+                    outToday.push(out.who);
+                } else if (isDateBetween(next, out.from, out.to)) {
+                    outNext.push(out.who);
                 }
             }
         }
@@ -186,7 +208,7 @@ export class Whosout {
         }
 
         const messageBuilder = await modify.getCreator().startMessage()
-            .setSender(this.app.botUser)
+            .setSender(appUser as IUser)
             .setUsernameAlias(this.app.zohoName)
             .setEmojiAvatar(this.app.zohoEmojiAvatar);
 

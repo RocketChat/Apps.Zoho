@@ -11,5 +11,5 @@ export async function processHelpCommand(app: ZohoApp, context: SlashCommandCont
         \`/zoho whosout\` Shows people out today, tomorrow
         \`/zoho help\` Shows this message`;
 
-    await sendMessage(app, modify, room, message);
+    await sendMessage(app, read, modify, room, message);
 }

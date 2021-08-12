@@ -36,16 +36,6 @@ export class ZohoApp extends App {
     public zohoEmojiAvatar: string = ':fox:';
 
     /**
-     * The bot username who sends the messages
-     */
-    public botUsername: string;
-
-    /**
-     * The bot user sending messages
-     */
-    public botUser: IUser;
-
-    /**
      * The zoho people token, from settings
      */
     public peopleToken: string;
@@ -85,19 +75,11 @@ export class ZohoApp extends App {
     /**
      * Loads the room where to get members from
      * Loads the room where to post messages to
-     * Loads the user who'll be posting messages as the botUser
      *
      * @param environmentRead
      * @param configModify
      */
     public async onEnable(environmentRead: IEnvironmentRead, configModify: IConfigurationModify): Promise<boolean> {
-        this.botUsername = await environmentRead.getSettings().getValueById(AppSetting.BotUsername);
-        if (this.botUsername) {
-            this.botUser = await this.getAccessors().reader.getUserReader().getByUsername(this.botUsername) as IUser;
-        } else {
-            return false;
-        }
-
         this.peopleToken = await environmentRead.getSettings().getValueById(AppSetting.PeopleToken);
 
         this.zohoRoomName = await environmentRead.getSettings().getValueById(AppSetting.ZohoRoom);
@@ -120,12 +102,6 @@ export class ZohoApp extends App {
      */
     public async onSettingUpdated(setting: ISetting, configModify: IConfigurationModify, read: IRead, http: IHttp): Promise<void> {
         switch (setting.id) {
-            case AppSetting.BotUsername:
-                this.botUsername = setting.value;
-                if (this.botUsername) {
-                    this.botUser = await this.getAccessors().reader.getUserReader().getByUsername(this.botUsername) as IUser;
-                }
-                break;
             case AppSetting.PeopleToken:
                 this.peopleToken = setting.value;
                 break;

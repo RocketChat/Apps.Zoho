@@ -20,11 +20,12 @@ export class Birthday {
      */
     // tslint:disable-next-line:max-line-length
     public async run(read: IRead, modify: IModify, http: IHttp, persistence: IPersistence, user?: IUser, params?: Array<string>) {
+        const appUser = await read.getUserReader().getAppUser(this.app.getID());
         const url = `https://people.zoho.com/people/api/forms/P_EmployeeView/records?authtoken=${this.app.peopleToken}`;
         const result = await http.get(url);
         if (result && result.content && result.content.length > 0) {
             const messageBuilder = await modify.getCreator().startMessage()
-                .setSender(this.app.botUser)
+                .setSender(appUser as IUser)
                 .setUsernameAlias(this.app.zohoName)
                 .setEmojiAvatar(this.app.zohoEmojiAvatar);
 
@@ -78,7 +79,7 @@ export class Birthday {
                     bdPeople = bdToday.map((birthday) => birthday.username).join(', @') + ` and @${last.username}`;
                 }
 
-                await sendMessage(this.app, modify, this.app.zohoRoom, `Let's wish a happy birthday to @${bdPeople} :point_down:`);
+                await sendMessage(this.app, read, modify, this.app.zohoRoom, `Let's wish a happy birthday to @${bdPeople} :point_down:`);
 
                 const id = uuid();
                 const discussion = await modify.getCreator().startDiscussion()
@@ -86,7 +87,7 @@ export class Birthday {
                     .setReply(`Happy Birthday @${bdPeople}`)
                     .setDisplayName(`Happy Birthday - @${bdPeople}`)
                     .setSlugifiedName(id)
-                    .setCreator(this.app.botUser);
+                    .setCreator(appUser as IUser);
                 await modify.getCreator().finish(discussion);
             }
         }
