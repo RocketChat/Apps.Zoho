@@ -12,7 +12,7 @@ import { App } from '@rocket.chat/apps-engine/definition/App';
 import { IAppInfo } from '@rocket.chat/apps-engine/definition/metadata';
 import { IRoom } from '@rocket.chat/apps-engine/definition/rooms';
 import { ISetting } from '@rocket.chat/apps-engine/definition/settings';
-import { IUser } from '@rocket.chat/apps-engine/definition/users';
+import { ZohoPeople } from './lib/ZohoPeople';
 
 import { Birthday } from './actions/Birthday';
 import { Anniversary } from './actions/Anniversary';
@@ -22,6 +22,7 @@ import { BirthdayEndpoint } from './endpoints/Birthday';
 import { AnniversaryEndpoint } from './endpoints/Anniversary';
 import { WhosOutEndpoint } from './endpoints/WhosOut';
 import { AppSetting, settings } from './settings';
+import { PeopleCache } from './lib/PeopleCache';
 
 export class ZohoApp extends App {
 
@@ -36,14 +37,9 @@ export class ZohoApp extends App {
     public zohoEmojiAvatar: string = ':fox:';
 
     /**
-     * The zoho people token, from settings
-     */
-    public peopleToken: string;
-
-    /**
      * The room name where to get members from
      */
-    public zohoRoomName: string;
+    public zohoRoomId: string;
 
     /**
      * The actual room object where to get members from
@@ -65,8 +61,20 @@ export class ZohoApp extends App {
      */
     public readonly anniversary: Anniversary;
 
+    /**
+     * Zoho People API
+     */
+    public readonly zohoPeople: ZohoPeople;
+
+    /**
+     * Cache for Zoho People API results
+     */
+    public readonly peopleCache: PeopleCache;
+
     constructor(info: IAppInfo, logger: ILogger, accessors: IAppAccessors) {
         super(info, logger, accessors);
+        this.zohoPeople = new ZohoPeople(this);
+        this.peopleCache = new PeopleCache(this);
         this.whosout = new Whosout(this);
         this.birthday = new Birthday(this);
         this.anniversary = new Anniversary(this);
@@ -80,15 +88,13 @@ export class ZohoApp extends App {
      * @param configModify
      */
     public async onEnable(environmentRead: IEnvironmentRead, configModify: IConfigurationModify): Promise<boolean> {
-        this.peopleToken = await environmentRead.getSettings().getValueById(AppSetting.PeopleToken);
-
-        this.zohoRoomName = await environmentRead.getSettings().getValueById(AppSetting.ZohoRoom);
-        if (this.zohoRoomName) {
-            this.zohoRoom = await this.getAccessors().reader.getRoomReader().getByName(this.zohoRoomName) as IRoom;
+        this.zohoRoomId = await environmentRead.getSettings().getValueById(AppSetting.ZohoRoom);
+        if (this.zohoRoomId) {
+            this.zohoRoom = await this.getAccessors().reader.getRoomReader().getById(this.zohoRoomId) as IRoom;
         } else {
             return false;
         }
-
+        this.peopleCache.buildCache().then((peopleCache: any) => { this.peopleCache.setCache(peopleCache) }).catch((error) => { console.log('Error setting people cache', error) });
         return true;
     }
 
@@ -102,13 +108,10 @@ export class ZohoApp extends App {
      */
     public async onSettingUpdated(setting: ISetting, configModify: IConfigurationModify, read: IRead, http: IHttp): Promise<void> {
         switch (setting.id) {
-            case AppSetting.PeopleToken:
-                this.peopleToken = setting.value;
-                break;
             case AppSetting.ZohoRoom:
-                this.zohoRoomName = setting.value;
-                if (this.zohoRoomName) {
-                    this.zohoRoom = await this.getAccessors().reader.getRoomReader().getByName(this.zohoRoomName) as IRoom;
+                this.zohoRoomId = setting.value;
+                if (this.zohoRoomId) {
+                    this.zohoRoom = await this.getAccessors().reader.getRoomReader().getByName(this.zohoRoomId) as IRoom;
                 }
                 break;
         }
@@ -119,7 +122,7 @@ export class ZohoApp extends App {
 
         // API endpoints
         await configuration.api.provideApi({
-            visibility: ApiVisibility.PRIVATE,
+            visibility: ApiVisibility.PUBLIC,
             security: ApiSecurity.UNSECURE,
             endpoints: [
                 new WhosOutEndpoint(this),

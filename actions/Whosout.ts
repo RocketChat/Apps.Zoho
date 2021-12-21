@@ -21,13 +21,11 @@ export class Whosout {
     // tslint:disable-next-line:max-line-length
     public async run(read: IRead, modify: IModify, http: IHttp, persistence: IPersistence, user?: IUser, params?: Array<string>) {
         const appUser = await read.getUserReader().getAppUser(this.app.getID());
-        const urlPeople = `https://people.zoho.com/people/api/forms/P_EmployeeView/records?authtoken=${this.app.peopleToken}`;
-        const peopleResult = await http.get(urlPeople);
         const people = {};
-        for (const person of peopleResult.data) {
-            people[`${ person['First Name'] } ${ person['Last Name']} ${ person['EmployeeID'] }`] = person;
+        for (const employee of this.app.peopleCache.employees) {
+            people[`${ employee['FirstName'] } ${ employee['LastName']} ${ employee['EmployeeID'] }`] = employee;
         }
-        console.log(Object.keys(people));
+
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         let next;
@@ -38,173 +36,54 @@ export class Whosout {
         } else {
             next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
         }
-        const attachments: Array<IMessageAttachment> = [];
-        let fields: Array<IMessageAttachmentField> = [];
-        const outToday: Array<string> = [];
-        const outNext: Array<string> = [];
-        const departments: any = {};
 
-        const url = `https://people.zoho.com/people/api/forms/P_ApplyLeaveView/records?authtoken=${this.app.peopleToken}`;
-        const result = await http.get(url);
-        for (const leave of result.data) {
-            const person = people[leave['Employee ID']];
-            console.log(person);
-
-            if (leave.ApprovalStatus === 'Approved' || leave.ApprovalStatus === 'Pending') {
-                const from = new Date(leave.From);
-                const to = new Date(leave.To);
-                const amount = leave['Days/Hours Taken'];
-                const department = (person && person['Department']) || '-';
-                let info = `, ${ department }, ${amount.replace('.0', '')} ${leave.Unit.toLowerCase()}${parseInt(amount) > 1 ? 's' : ''}${leave.Unit === 'Hour' ? '' : `, until ${leave.To}`}`;
-
-                if (leave.ApprovalStatus === 'Pending') {
-                    info += ' _(pending)_';
-                }
-
-                const who = `*${ (person && person['Website Display Name']) || leave.ownerName }*${info}`;
-                const out: any = {};
-                out.from = from;
-                out.to = to;
-                out.who = who;
-
-                if (!departments[department]) {
-                    departments[department] = [];
-                }
-                departments[department].push(out);
-                // if (isDateBetween(today, from, to)) {
-                //     outToday.push(who);
-                // } else if (isDateBetween(next, from, to)) {
-                //     outNext.push(who);
-                // }
-            }
-        }
-
-        for (const department of Object.keys(departments)) {
-            for (const out of departments[department]) {
-                if (isDateBetween(today, out.from, out.to)) {
-                    outToday.push(out.who);
-                } else if (isDateBetween(next, out.from, out.to)) {
-                    outNext.push(out.who);
-                }
-            }
-        }
-
-        const locations = {};
-        for (const employeeId of Object.keys(people)) {
+        const departmentLeaves = {};
+        for (const employeeId of Object.keys(this.app.peopleCache.leaves)) {
             const person = people[employeeId];
-            if (person['Location Name']) {
-                const username = `*${ person['Website Display Name'] || person.ownerName }*, ${ person['Department'] || '-' }`;
-                if (locations[person['Location Name']]) {
-                    locations[person['Location Name']].people.push(username);
-                } else {
-                    locations[person['Location Name']] = { people: [ username ], holidayToday: [], holidayNext: [], holidayWeekend: [], holidayNextWeekend: [] };
-                    const urlHoliday = `https://people.zoho.com/people/api/leave/getHolidays?authtoken=${this.app.peopleToken}&userId=${person.recordId}`;
-                    const resultHoliday = await http.get(urlHoliday);
-                    if (resultHoliday && resultHoliday.data && resultHoliday.data.response && resultHoliday.data.response.result) {
-                        for (const holiday of resultHoliday.data.response.result) {
-                            const date = new Date(holiday.fromDate + 'T00:00:00').toISOString();
-                            const name = holiday.Name.substring(holiday.Name.lastIndexOf(':') + 1);
-                            if (date === today.toISOString()) {
-                                locations[person['Location Name']].holidayToday.push(name);
-                            } else if (date === next.toISOString()) {
-                                locations[person['Location Name']].holidayNext.push(name);
-                            } else if (today.getDay() === 1) {
-                                const saturday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2).toISOString();
-                                const sunday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1).toISOString();
-                                if (date === saturday) {
-                                    locations[person['Location Name']].holidayWeekend.push(`Saturday, ${ name }`);
-                                } else if (date === sunday) {
-                                    locations[person['Location Name']].holidayWeekend.push(`Sunday, ${name}`);
-                                }
-                            } else if (today.getDay() === 5) {
-                                const saturday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
-                                const sunday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2).toISOString();
-                                if (date === saturday) {
-                                    locations[person['Location Name']].holidayNextWeekend.push(`Saturday, ${name}`);
-                                } else if (date === sunday) {
-                                    locations[person['Location Name']].holidayNextWeekend.push(`Sunday, ${name}`);
-                                }
-                            }
-                        }
+            for (const leave of this.app.peopleCache.leaves[employeeId]) {
+                if (person && (leave.ApprovalStatus === 'Approved' || leave.ApprovalStatus === 'Pending')) {
+                    const from = new Date(leave.From);
+                    const to = new Date(leave.To);
+                    const amount = leave['Daystaken'];
+                    const department = person['Department'] || '-';
+                    if (!departmentLeaves[department]) {
+                        departmentLeaves[department] = { today: [], next: [], holidays: [], birthdays: [] };
+                    }
+
+                    let info = `, ${amount.replace('.0', '')} ${leave.Unit.toLowerCase()}${parseInt(amount) > 1 ? 's' : ''}${leave.Unit === 'Hour' ? '' : `, until ${new Date(leave.To).toString().substr(0, 10)}`}`;
+                    if (leave.ApprovalStatus === 'Pending') {
+                        info += ' _(pending)_';
+                    }
+                    const who = `${ person['Website_Display_Name'] || person['FirstName'] + ' ' + person['LastName'] }${info}`;
+
+                    if (isDateBetween(today, from, to)) {
+                        departmentLeaves[department].today.push(who);
+                    } else if (isDateBetween(next, from, to)) {
+                        departmentLeaves[department].next.push(who);
                     }
                 }
             }
         }
 
-        if (Object.keys(locations).length > 0) {
-            for (const location of Object.keys(locations)) {
-                if (locations[location].holidayToday.length > 0) {
-                    // fields.push({
-                    //     title: `Holiday today in ${location}:`,
-                    //     value: `${locations[location].holidayToday.join('\n')}\n\n*People in ${location}:*\n${locations[location].people.join('\n')}`,
-                    //     short: true,
-                    // });
-                    for (const person of locations[location].people) {
-                        outToday.push(`${person}, Holiday, ${ location }`);
-                    }
+        for (const employeeId of Object.keys(this.app.peopleCache.holidays)) {
+            const employee = people[employeeId];
+            for (const holiday of this.app.peopleCache.holidays[employeeId]) {
+                const holidayName = holiday.Name.substring(holiday.Name.lastIndexOf(':') + 1);
+                const department = employee['Department'] || '-';
+                if (!departmentLeaves[department]) {
+                    departmentLeaves[department] = { today: [], next: [], holidays: [], birthdays: [] };
                 }
-
-                if (locations[location].holidayNext.length > 0) {
-                    // fields.push({
-                    //     title: `Holiday ${ monday ? 'on Monday': 'tomorrow' } in ${location}:`,
-                    //     value: `${locations[location].holidayNext.join('\n')}\n\n*People in ${location}:*\n${locations[location].people.join('\n')}`,
-                    //     short: true,
-                    // });
-                    for (const person of locations[location].people) {
-                        outNext.push(`${person}, Holiday, ${ location }`);
-                    }
-                }
-
-                // if (fields.length > 0) {
-                //     attachments.push({ fields, color: 'orange' });
-                //     fields = [];
-                // }
-
-                // if (locations[location].holidayWeekend.length > 0) {
-                //     fields.push({
-                //         title: `Holiday past weekend in ${location}:`,
-                //         value: `${locations[location].holidayWeekend.join('\n')}\n\n*People in ${location}:*\n${locations[location].people.join('\n')}`,
-                //         short: true,
-                //     });
-                // }
-
-                // if (locations[location].holidayNextWeekend.length > 0) {
-                //     fields.push({
-                //         title: `Holiday next weekend in ${location}:`,
-                //         value: `${locations[location].holidayNextWeekend.join('\n')}\n\n*People in ${location}:*\n${locations[location].people.join('\n')}`,
-                //         short: true,
-                //     });
-                // }
-
-
-                // if (fields.length > 0) {
-                //     attachments.push({ fields, color: 'orange' });
-                //     fields = [];
-                // }
+                departmentLeaves[department].holidays.push(`${ employee['Website_Display_Name'] || employee['FirstName'] + ' ' + employee['LastName'] }, ${holidayName}`)
             }
         }
 
-        if (outToday.length > 0) {
-            fields.push({
-                title: `Out today:`,
-                value: outToday.join('\n'),
-            });
-        }
-
-        if (outNext.length > 0) {
-            fields.push({
-                title: `Out ${monday ? 'on Monday' : 'tomorrow'}:`,
-                value: outNext.join('\n'),
-            });
-        }
-
-        if (fields.length > 0) {
-            attachments.push({ fields, color: 'red' });
-            fields = [];
-        }
-
-        if (attachments.length === 0) {
-            return;
+        for (const employeeId of Object.keys(this.app.peopleCache.birthdays)) {
+            const employee = people[employeeId];
+            const department = employee['Department'] || '-';
+            if (!departmentLeaves[department]) {
+                departmentLeaves[department] = { today: [], next: [], holidays: [], birthdays: [] };
+            }
+            departmentLeaves[department].birthdays.push(`${ employee['Website_Display_Name'] || employee['FirstName'] + ' ' + employee['LastName'] }`)
         }
 
         const messageBuilder = await modify.getCreator().startMessage()
@@ -222,9 +101,36 @@ export class Whosout {
             messageBuilder.setRoom(this.app.zohoRoom);
         }
 
+        messageBuilder.setText("*Out of Office*");
+
+        const attachments: Array<IMessageAttachment> = [];
+        for (const department of Object.keys(departmentLeaves).sort()) {
+            const fields: Array<IMessageAttachmentField> = [];
+            if (departmentLeaves[department].today.length > 0) {
+                fields.push({ title: 'Out Today:\n', value: departmentLeaves[department].today.sort().join('\n') });
+            }
+            if (departmentLeaves[department].holidays.length > 0) {
+                fields.push({ title: 'On a Holiday:\n', value: departmentLeaves[department].holidays.sort().join('\n') });
+            }
+            if (departmentLeaves[department].birthdays.length > 0) {
+                fields.push({ title: 'Birthday:\n', value: departmentLeaves[department].birthdays.sort().join('\n') });
+            }
+            if (departmentLeaves[department].next.length > 0) {
+                fields.push({ title: 'Out Next:\n', value: departmentLeaves[department].next.sort().join('\n') });
+            }
+            if (fields.length > 0) {
+                attachments.push({
+                    fields,
+                    title: { value: department },
+                    collapsed: true,
+                })
+            }
+        }
+
         for (const attachment of attachments) {
             messageBuilder.addAttachment(attachment);
         }
+
         modify.getCreator().finish(messageBuilder);
     }
 }
