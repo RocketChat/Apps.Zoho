@@ -1,7 +1,7 @@
 {
     "id": "431afeb5-6e28-491c-8fb6-63e84d2edaf8",
-    "version": "0.0.2",
-    "requiredApiVersion": "^1.15.0",
+    "version": "0.0.3",
+    "requiredApiVersion": "^1.19.0",
     "iconFile": "icon.png",
     "author": {
         "name": "Marcelo Schmidt",

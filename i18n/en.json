@@ -1,5 +1,5 @@
 {
-    "Zoho_Params": "whosout, help",
+    "Zoho_Params": "whosout, birthdays, help",
     "Zoho_Description": "Interacts with Zoho. Type `/zoho help` for more info",
     "Zoho_Bot_Username": "Bot Username",
     "Zoho_Bot_Username_Description": "The username who'll send the messages",

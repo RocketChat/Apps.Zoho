@@ -20,6 +20,8 @@ export class Whosout {
      */
     // tslint:disable-next-line:max-line-length
     public async run(read: IRead, modify: IModify, http: IHttp, persistence: IPersistence, user?: IUser, params?: Array<string>) {
+        await this.app.peopleCache.load();
+
         const appUser = await read.getUserReader().getAppUser(this.app.getID());
         const people = {};
         for (const employee of this.app.peopleCache.employees) {
@@ -77,7 +79,7 @@ export class Whosout {
             }
         }
 
-        for (const employeeId of Object.keys(this.app.peopleCache.birthdays)) {
+        for (const employeeId of Object.keys(this.app.peopleCache.birthdays.today)) {
             const employee = people[employeeId];
             const department = employee['Department'] || '-';
             if (!departmentLeaves[department]) {
@@ -121,7 +123,7 @@ export class Whosout {
             if (fields.length > 0) {
                 attachments.push({
                     fields,
-                    title: { value: department },
+                    title: { value: `${department} (${(departmentLeaves[department].today.length) + (departmentLeaves[department].holidays.length) + (departmentLeaves[department].birthdays.length)} today)` },
                     collapsed: true,
                 })
             }

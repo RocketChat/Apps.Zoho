@@ -11,7 +11,11 @@ export class PeopleCache {
 
     constructor(private readonly app: ZohoApp) {}
 
-    public async buildCache(): Promise<any> {
+    public async load(): Promise<any> {
+        if (this.isValid()) {
+            return { employees: this.employees, leaves: this.leaves, holidays: this.holidays, birthdays: this.birthdays };
+        }
+
         this._expire = Date.now() + this._expirationTime;
         const date = new Date();
 
@@ -20,7 +24,7 @@ export class PeopleCache {
         const _holidays = await this.app.zohoPeople.getHolidays(new Date());
 
         const holidays: any = {};
-        const birthdays: any = {};
+        const birthdays: any = { today: {}, month: {} };
 
         for (const employee of employees) {
             const employeeId = `${ employee.FirstName } ${ employee.LastName } ${ employee.EmployeeID }`
@@ -32,11 +36,15 @@ export class PeopleCache {
             }
 
             const birthday = new Date(employee.Date_of_birth);
-            if (date.getDate() === birthday.getDate() && date.getMonth() === birthday.getMonth()) {
-                birthdays[employeeId] = employee;
+            if (date.getMonth() === birthday.getMonth()) {
+                birthdays.month[employeeId] = employee;
+                if (date.getDate() === birthday.getDate()) {
+                    birthdays.today[employeeId] = employee;
+                }
             }
         }
 
+        this.setCache({ employees, leaves, holidays, birthdays });
         return { employees, leaves, holidays, birthdays };
     }
 
@@ -45,8 +53,7 @@ export class PeopleCache {
         this._leaves = leaves;
         this._holidays = holidays;
         this._birthdays = birthdays;
-
-        console.log('PeopleCache set', employees.length, 'employees loaded');
+        console.log('PeopleCache set');
     }
 
     public isValid(): boolean {

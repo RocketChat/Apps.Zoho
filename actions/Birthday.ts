@@ -20,77 +20,79 @@ export class Birthday {
      */
     // tslint:disable-next-line:max-line-length
     public async run(read: IRead, modify: IModify, http: IHttp, persistence: IPersistence, user?: IUser, params?: Array<string>) {
-        const appUser = await read.getUserReader().getAppUser(this.app.getID());
-        const messageBuilder = await modify.getCreator().startMessage()
-            .setSender(appUser as IUser)
-            .setUsernameAlias(this.app.zohoName)
-            .setEmojiAvatar(this.app.zohoEmojiAvatar);
+        await this.app.peopleCache.load();
 
-        if (user) {
-            const room = await getDirect(this.app, read, modify, user.username);
-            if (!room) {
-                return;
+        const appUser = await read.getUserReader().getAppUser(this.app.getID());
+        const birthdays: any = [];
+        for (const employeeId of Object.keys(this.app.peopleCache.birthdays.today)) {
+            birthdays.push()
+            const employee = this.app.peopleCache.birthdays.today[employeeId];
+            let username = employee['Open'].split('/');
+            username = username[username.length - 1];
+            if (!username) {
+                username = employee['Email ID'].split('@')[0];
             }
-            messageBuilder.setRoom(room);
-        } else {
-            messageBuilder.setRoom(this.app.zohoRoom);
+            birthdays.push(username);
+        }
+        const numBirthdays = birthdays.length;
+        let birthdayUsernames = '';
+        if (numBirthdays > 0) {
+            if (numBirthdays === 1) {
+                birthdayUsernames = `@${birthdays[0]}`;
+            } else {
+                const last = birthdays.pop();
+                birthdayUsernames = birthdays.join(', @') + ` and @${last}`;
+            }
+            await sendMessage(this.app, read, modify, this.app.zohoRoom, `Let's wish a happy birthday to ${birthdayUsernames} :point_down:`);
+
+            const id = uuid();
+            const discussion = await modify.getCreator().startDiscussion()
+                .setParentRoom(this.app.zohoRoom)
+                .setReply(`Happy Birthday @${birthdayUsernames}`)
+                .setDisplayName(`Happy Birthday - @${birthdayUsernames}`)
+                .setSlugifiedName(id)
+                .setCreator(appUser as IUser);
+            await modify.getCreator().finish(discussion);
         }
 
-        const fields: Array<IMessageAttachmentField> = [];
-        const bdToday: Array<IBirthday> = [];
-        const bdMonth: Array<IBirthday> = [];
-        for (const employeeId of Object.keys(this.app.peopleCache.birthdays)) {
-            const employee = this.app.peopleCache.birthdays[employeeId];
-            if (employee['Date_of_birth']) {
+        if ((user || new Date().getDate() === 1) && Object.keys(this.app.peopleCache.birthdays.month).length > 0) {
+            const monthBirthdays: any = [];
+            for (const employeeId of Object.keys(this.app.peopleCache.birthdays.month)) {
+                const employee = this.app.peopleCache.birthdays.month[employeeId];
                 const [month, day] = employee['Date_of_birth'].split('-');
-                const name = employee['Website_Display_Name'] || `${employee['FirstName']} ${employee['LastName']}`;
                 let username = employee['Open'].split('/');
                 username = username[username.length - 1];
                 if (!username) {
                     username = employee['Email ID'].split('@')[0];
                 }
-                const birthday: IBirthday = { name, username, day: parseInt(day, 10), month: parseInt(month, 10) };
-                if (birthday.month === new Date().getMonth() + 1) {
-                    bdMonth.push(birthday);
-                    if (birthday.day === new Date().getDate()) {
-                        bdToday.push(birthday);
+                monthBirthdays.push({ username, day });
+            }
+
+            if (monthBirthdays.length > 0) {
+                const messageBuilder = await modify.getCreator().startMessage()
+                .setSender(appUser as IUser)
+                .setUsernameAlias(this.app.zohoName)
+                .setEmojiAvatar(this.app.zohoEmojiAvatar);
+
+                if (user) {
+                    const room = await getDirect(this.app, read, modify, user.username);
+                    if (!room) {
+                        return;
                     }
+                    messageBuilder.setRoom(room);
+                } else {
+                    messageBuilder.setRoom(this.app.zohoRoom);
                 }
+
+                const fields: Array<IMessageAttachmentField> = [];
+                fields.push({
+                    title: `Birthdays this month:`,
+                    value: '\n' + monthBirthdays.sort((a, b) => { const cmp = parseInt(a.day, 10) - parseInt(b.day, 10); return cmp < 0 ? -1 : (cmp > 0 ? 1 : 0) }).map((birthday) => `@${birthday.username}, ${birthday.day}`).join('\n'),
+                    short: true,
+                });
+                messageBuilder.addAttachment({ fields });
+                modify.getCreator().finish(messageBuilder);
             }
-        }
-        bdMonth.sort((a, b) => {
-            return a.day - b.day;
-        });
-
-        if (user || (new Date().getDate() === 1 && bdMonth.length > 0)) {
-            fields.push({
-                title: `Birthdays this month:`,
-                value: '\n' + bdMonth.map((birthday) => `${birthday.name}, ${birthday.day}`).join('\n'),
-                short: true,
-            });
-            messageBuilder.addAttachment({ fields });
-            modify.getCreator().finish(messageBuilder);
-        }
-
-        if (!user && bdToday.length > 0) {
-            let bdPeople;
-            if (bdToday.length === 1) {
-                bdPeople = bdToday[0].username;
-            } else {
-                const last = bdToday.pop() as IBirthday;
-                bdPeople = bdToday.map((birthday) => birthday.username).join(', @') + ` and @${last.username}`;
-            }
-
-            await sendMessage(this.app, read, modify, this.app.zohoRoom, `Let's wish a happy birthday to @${bdPeople} :point_down:`);
-
-            const id = uuid();
-            const discussion = await modify.getCreator().startDiscussion()
-                .setParentRoom(this.app.zohoRoom)
-                .setReply(`Happy Birthday @${bdPeople}`)
-                .setDisplayName(`Happy Birthday - @${bdPeople}`)
-                .setSlugifiedName(id)
-                .setCreator(appUser as IUser);
-            await modify.getCreator().finish(discussion);
         }
     }
 }

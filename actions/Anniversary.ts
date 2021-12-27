@@ -19,6 +19,8 @@ export class Anniversary {
      */
     // tslint:disable-next-line:max-line-length
     public async run(read: IRead, modify: IModify, http: IHttp, persistence: IPersistence, user?: IUser, params?: Array<string>) {
+        await this.app.peopleCache.load();
+
         const appUser = await read.getUserReader().getAppUser(this.app.getID());
 
         const messages = [

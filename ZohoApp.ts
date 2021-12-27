@@ -23,6 +23,7 @@ import { AnniversaryEndpoint } from './endpoints/Anniversary';
 import { WhosOutEndpoint } from './endpoints/WhosOut';
 import { AppSetting, settings } from './settings';
 import { PeopleCache } from './lib/PeopleCache';
+import { StartupType } from '@rocket.chat/apps-engine/definition/scheduler';
 
 export class ZohoApp extends App {
 
@@ -94,7 +95,7 @@ export class ZohoApp extends App {
         } else {
             return false;
         }
-        this.peopleCache.buildCache().then((peopleCache: any) => { this.peopleCache.setCache(peopleCache) }).catch((error) => { console.log('Error setting people cache', error) });
+        await this.peopleCache.load();
         return true;
     }
 
