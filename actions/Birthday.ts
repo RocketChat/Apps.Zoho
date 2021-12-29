@@ -87,7 +87,7 @@ export class Birthday {
                 const fields: Array<IMessageAttachmentField> = [];
                 fields.push({
                     title: `Birthdays this month:`,
-                    value: '\n' + monthBirthdays.sort((a, b) => { const cmp = parseInt(a.day, 10) - parseInt(b.day, 10); return cmp < 0 ? -1 : (cmp > 0 ? 1 : 0) }).map((birthday) => `@${birthday.username}, ${birthday.day}`).join('\n'),
+                    value: '\n' + monthBirthdays.sort((a, b) => { const cmp = parseInt(a.day, 10) - parseInt(b.day, 10); return cmp < 0 ? -1 : (cmp > 0 ? 1 : 0) }).map((birthday) => `@${birthday.username} - ${birthday.day}`).join('\n'),
                     short: true,
                 });
                 messageBuilder.addAttachment({ fields });

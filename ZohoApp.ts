@@ -23,7 +23,6 @@ import { AnniversaryEndpoint } from './endpoints/Anniversary';
 import { WhosOutEndpoint } from './endpoints/WhosOut';
 import { AppSetting, settings } from './settings';
 import { PeopleCache } from './lib/PeopleCache';
-import { StartupType } from '@rocket.chat/apps-engine/definition/scheduler';
 
 export class ZohoApp extends App {
 

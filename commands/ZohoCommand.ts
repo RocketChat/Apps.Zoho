@@ -18,20 +18,25 @@ export class ZohoCommand implements ISlashCommand {
 
     constructor(private readonly app: ZohoApp) { }
     public async executor(context: SlashCommandContext, read: IRead, modify: IModify, http: IHttp, persistence: IPersistence): Promise<void> {
-        const [command, ...params] = context.getArguments();
-        if (!command) {
-            return await processHelpCommand(this.app, context, read, modify);
-        }
+        const sender = context.getSender();
 
-        switch (command) {
-            case this.CommandEnum.Whosout:
-                await processWhosoutCommand(this.app, context, read, modify, http, persistence, params);
-                break;
-            case this.CommandEnum.Birthdays:
-                await processBirthdaysCommand(this.app, context, read, modify, http, persistence, params);
-                break;
-            default:
-                await processHelpCommand(this.app, context, read, modify);
+        // Limit execution of command to @rocket.chat users
+        if (sender.emails.find(email => email.address.indexOf('@rocket.chat') !== -1)) {
+            const [command, ...params] = context.getArguments();
+            if (!command) {
+                return await processHelpCommand(this.app, context, read, modify);
+            }
+
+            switch (command) {
+                case this.CommandEnum.Whosout:
+                    await processWhosoutCommand(this.app, context, read, modify, http, persistence, params);
+                    break;
+                case this.CommandEnum.Birthdays:
+                    await processBirthdaysCommand(this.app, context, read, modify, http, persistence, params);
+                    break;
+                default:
+                    await processHelpCommand(this.app, context, read, modify);
+            }
         }
     }
 }
