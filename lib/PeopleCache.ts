@@ -12,6 +12,7 @@ export class PeopleCache {
     constructor(private readonly app: ZohoApp) {}
 
     public async load(): Promise<any> {
+        await this.app.getLogger().log('Checking People Cache', this.isValid());
         if (this.isValid()) {
             return { employees: this.employees, leaves: this.leaves, holidays: this.holidays, birthdays: this.birthdays };
         }
@@ -19,6 +20,7 @@ export class PeopleCache {
         this._expire = Date.now() + this._expirationTime;
         const date = new Date();
 
+        await this.app.getLogger().log('Loading People Cache');
         const employees = await this.app.zohoPeople.getEmployees();
         const leaves = await this.app.zohoPeople.getLeaves(new Date());
         const _holidays = await this.app.zohoPeople.getHolidays(new Date());
@@ -44,6 +46,7 @@ export class PeopleCache {
             }
         }
 
+        // await this.app.getLogger().log('Setting People Cache', employees);
         this.setCache({ employees, leaves, holidays, birthdays });
         return { employees, leaves, holidays, birthdays };
     }

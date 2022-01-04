@@ -80,6 +80,8 @@ export class ZohoPeople {
         const fromParts = date.toDateString().split(' ');
         const from = `${ fromParts[2] }-${ fromParts[1] }-${ fromParts[3] }`;
 
+        console.log('Getting leaves from', from, 'to', to);
+
         const leaves: any = {};
         let hasMoreRecords = true;
         while (hasMoreRecords) {
@@ -88,7 +90,6 @@ export class ZohoPeople {
                 limit,
                 searchParams: `{searchField:From,searchOperator:Between,searchText:'${ from };${ to }'}`
             }, {});
-            hasMoreRecords = !!(result && result.data && result.data.response && result.data.response.result && result.data.response.result.length === 200);
             if (hasMoreRecords) {
                 for (const record of result.data.response.result) {
                     const leave: any = (Object.values(record)[0] as any)[0];
@@ -99,6 +100,7 @@ export class ZohoPeople {
                     leaves[leave['Employee_ID']] = [].concat(leaves[leave['Employee_ID']] || [], leave);
                 }
             }
+            hasMoreRecords = !!(result && result.data && result.data.response && result.data.response.result && result.data.response.result.length === 200);
             sIndex += limit;
         }
         return leaves;
