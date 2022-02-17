@@ -41,7 +41,7 @@ export class Birthday {
                 birthdayUsernames = `@${birthdays[0]}`;
             } else {
                 const last = birthdays.pop();
-                birthdayUsernames = birthdays.join(', @') + ` and @${last}`;
+                birthdayUsernames = `@${birthdays.join(', @')} and @${last}`;
             }
             await sendMessage(this.app, read, modify, this.app.zohoRoom, `Let's wish a happy birthday to ${birthdayUsernames} :point_down:`);
 
