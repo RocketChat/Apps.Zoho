@@ -41,15 +41,15 @@ export class Birthday {
                 birthdayUsernames = `@${birthdays[0]}`;
             } else {
                 const last = birthdays.pop();
-                birthdayUsernames = birthdays.join(', @') + ` and @${last}`;
+                birthdayUsernames = `@${birthdays.join(', @')} and @${last}`;
             }
             await sendMessage(this.app, read, modify, this.app.zohoRoom, `Let's wish a happy birthday to ${birthdayUsernames} :point_down:`);
 
             const id = uuid();
             const discussion = await modify.getCreator().startDiscussion()
                 .setParentRoom(this.app.zohoRoom)
-                .setReply(`Happy Birthday @${birthdayUsernames}`)
-                .setDisplayName(`Happy Birthday - @${birthdayUsernames}`)
+                .setReply(`Happy Birthday ${birthdayUsernames}`)
+                .setDisplayName(`Happy Birthday - ${birthdayUsernames}`)
                 .setSlugifiedName(id)
                 .setCreator(appUser as IUser);
             await modify.getCreator().finish(discussion);
