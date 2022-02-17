@@ -48,8 +48,8 @@ export class Birthday {
             const id = uuid();
             const discussion = await modify.getCreator().startDiscussion()
                 .setParentRoom(this.app.zohoRoom)
-                .setReply(`Happy Birthday @${birthdayUsernames}`)
-                .setDisplayName(`Happy Birthday - @${birthdayUsernames}`)
+                .setReply(`Happy Birthday ${birthdayUsernames}`)
+                .setDisplayName(`Happy Birthday - ${birthdayUsernames}`)
                 .setSlugifiedName(id)
                 .setCreator(appUser as IUser);
             await modify.getCreator().finish(discussion);
