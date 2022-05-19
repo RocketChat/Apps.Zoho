@@ -23,6 +23,7 @@ import { AnniversaryEndpoint } from './endpoints/Anniversary';
 import { WhosOutEndpoint } from './endpoints/WhosOut';
 import { AppSetting, settings } from './settings/settings';
 import { PeopleCache } from './lib/PeopleCache';
+import { IUser } from '@rocket.chat/apps-engine/definition/users';
 
 export class ZohoApp extends App {
 
@@ -98,9 +99,15 @@ export class ZohoApp extends App {
             const departmentRoomsObject: Record<string, IRoom['id']> = JSON.parse(await environmentRead.getSettings().getValueById(AppSetting.DepartmentRoomsJson));
             Object.entries(departmentRoomsObject).forEach(async ([department, roomId]) => {
                 const room = await this.getAccessors().reader.getRoomReader().getById(roomId);
-                if (room) {
-                    this.departmentRooms.set(department, room);
+                if (!room) {
+                    return;
                 }
+                const members = await this.getAccessors().reader.getRoomReader().getMembers(roomId);
+                if (!members.find(async (member) => member.id === this.getID())) {
+                    this.getLogger().debug(`app is not a member of ${room.slugifiedName}, skipping ${department} notifications`);
+                    return;
+                }
+                this.departmentRooms.set(department, room);
             })
         } catch (err) {
             this.getLogger().warn('invalid value for setting', AppSetting.DepartmentRoomsJson);

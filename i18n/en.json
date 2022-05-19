@@ -14,5 +14,7 @@
     "zoho_room": "Zoho Room",
     "zoho_room_description": "Where to post Zoho messages",
     "holiday_countries": "Holiday Countries",
-    "holiday_countries_description": "List of countries to fetch holidays from"
+    "holiday_countries_description": "List of countries to fetch holidays from",
+    "department_rooms_json": "Department Rooms",
+    "department_rooms_json_description": "Ids of each department's room as a map from deparment name to roomId in JSON"
 }
