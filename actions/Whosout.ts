@@ -109,7 +109,7 @@ export class Whosout {
         mainZohoRoomMessageBuilder.setText("*Out of Office*");
 
         const attachments: Array<IMessageAttachment> = [];
-        Object.entries(departmentLeaves).sort().forEach(async ([department, leave]) => {
+        await Promise.all(Object.entries(departmentLeaves).sort().map(async ([department, leave]) => {
             const fields: Array<IMessageAttachmentField> = [];
             if (leave.today.length > 0) {
                 fields.push({ title: 'Out Today:\n', value: leave.today.sort().join('\n') });
@@ -147,7 +147,7 @@ export class Whosout {
                 });
 
             await modify.getCreator().finish(departmentMessageBuilder);
-        })
+        }))
 
         mainZohoRoomMessageBuilder.setAttachments(attachments);
 

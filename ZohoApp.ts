@@ -103,7 +103,7 @@ export class ZohoApp extends App {
                     return;
                 }
                 const members = await this.getAccessors().reader.getRoomReader().getMembers(roomId);
-                if (!members.find(async (member) => member.id === this.getID())) {
+                if (!members.find((member) => member.id === this.getID())) {
                     this.getLogger().debug(`app is not a member of ${room.slugifiedName}, skipping ${department} notifications`);
                     return;
                 }
