@@ -3,7 +3,7 @@ import { IMessageAttachment } from '@rocket.chat/apps-engine/definition/messages
 import { IMessageAttachmentField } from '@rocket.chat/apps-engine/definition/messages/IMessageAttachmentField';
 import { IUser } from '@rocket.chat/apps-engine/definition/users';
 
-import { getDirect, isDateBetween } from '../utils';
+import { getDirect, isDateBetween } from '../lib/utils';
 import { ZohoApp } from '../ZohoApp';
 
 export class Whosout {
@@ -26,7 +26,7 @@ export class Whosout {
         const appUser = await read.getUserReader().getAppUser(this.app.getID());
         const people = {};
         for (const employee of this.app.peopleCache.employees) {
-            people[`${ employee['FirstName'] } ${ employee['LastName']} ${ employee['EmployeeID'] }`] = employee;
+            people[`${employee['FirstName']} ${employee['LastName']} ${employee['EmployeeID']}`] = employee;
         }
 
         const now = new Date();
@@ -40,7 +40,7 @@ export class Whosout {
             next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
         }
 
-        const departmentLeaves = {};
+        const departmentLeaves: Record<string, any> = {};
         for (const employeeId of Object.keys(this.app.peopleCache.leaves)) {
             const person = people[employeeId];
             for (const leave of this.app.peopleCache.leaves[employeeId]) {
@@ -57,7 +57,7 @@ export class Whosout {
                     if (leave.ApprovalStatus === 'Pending') {
                         info += ' _(pending)_';
                     }
-                    const who = `${ person['Website_Display_Name'] || person['FirstName'] + ' ' + person['LastName'] }${info}`;
+                    const who = `${person['Website_Display_Name'] || person['FirstName'] + ' ' + person['LastName']}${info}`;
 
                     if (isDateBetween(today, from, to)) {
                         departmentLeaves[department].today.push(who);
@@ -76,7 +76,7 @@ export class Whosout {
                 if (!departmentLeaves[department]) {
                     departmentLeaves[department] = { today: [], next: [], holidays: [], birthdays: [] };
                 }
-                departmentLeaves[department].holidays.push(`${ employee['Website_Display_Name'] || employee['FirstName'] + ' ' + employee['LastName'] }, ${holidayName}`)
+                departmentLeaves[department].holidays.push(`${employee['Website_Display_Name'] || employee['FirstName'] + ' ' + employee['LastName']}, ${holidayName}`)
             }
         }
 
@@ -86,10 +86,12 @@ export class Whosout {
             if (!departmentLeaves[department]) {
                 departmentLeaves[department] = { today: [], next: [], holidays: [], birthdays: [] };
             }
-            departmentLeaves[department].birthdays.push(`${ employee['Website_Display_Name'] || employee['FirstName'] + ' ' + employee['LastName'] }`)
+            departmentLeaves[department].birthdays.push(`${employee['Website_Display_Name'] || employee['FirstName'] + ' ' + employee['LastName']}`)
         }
 
-        const messageBuilder = await modify.getCreator().startMessage()
+        // departmentLeaves: Record<department, {}>
+
+        const mainZohoRoomMessageBuilder = await modify.getCreator().startMessage()
             .setSender(appUser as IUser)
             .setUsernameAlias(this.app.zohoName)
             .setEmojiAvatar(this.app.zohoEmojiAvatar);
@@ -99,41 +101,56 @@ export class Whosout {
             if (!room) {
                 return;
             }
-            messageBuilder.setRoom(room);
+            mainZohoRoomMessageBuilder.setRoom(room);
         } else {
-            messageBuilder.setRoom(this.app.zohoRoom);
+            mainZohoRoomMessageBuilder.setRoom(this.app.zohoRoom);
         }
 
-        messageBuilder.setText("*Out of Office*");
+        mainZohoRoomMessageBuilder.setText("*Out of Office*");
 
         const attachments: Array<IMessageAttachment> = [];
-        for (const department of Object.keys(departmentLeaves).sort()) {
+        Object.entries(departmentLeaves).sort().forEach(async ([department, leave]) => {
             const fields: Array<IMessageAttachmentField> = [];
-            if (departmentLeaves[department].today.length > 0) {
-                fields.push({ title: 'Out Today:\n', value: departmentLeaves[department].today.sort().join('\n') });
+            if (leave.today.length > 0) {
+                fields.push({ title: 'Out Today:\n', value: leave.today.sort().join('\n') });
             }
-            if (departmentLeaves[department].holidays.length > 0) {
-                fields.push({ title: 'On a Holiday:\n', value: departmentLeaves[department].holidays.sort().join('\n') });
+            if (leave.holidays.length > 0) {
+                fields.push({ title: 'On a Holiday:\n', value: leave.holidays.sort().join('\n') });
             }
-            if (departmentLeaves[department].birthdays.length > 0) {
-                fields.push({ title: 'Birthday:\n', value: departmentLeaves[department].birthdays.sort().join('\n') });
+            if (leave.birthdays.length > 0) {
+                fields.push({ title: 'Birthday:\n', value: leave.birthdays.sort().join('\n') });
             }
-            if (departmentLeaves[department].next.length > 0) {
-                fields.push({ title: 'Out Next:\n', value: departmentLeaves[department].next.sort().join('\n') });
+            if (leave.next.length > 0) {
+                fields.push({ title: 'Out Next:\n', value: leave.next.sort().join('\n') });
             }
             if (fields.length > 0) {
                 attachments.push({
                     fields,
-                    title: { value: `${department} (${(departmentLeaves[department].today.length) + (departmentLeaves[department].holidays.length) + (departmentLeaves[department].birthdays.length)} today)` },
+                    title: { value: `${department} (${(leave.today.length) + (leave.holidays.length) + (leave.birthdays.length)} today)` },
                     collapsed: true,
                 })
             }
-        }
+            const departmentRoom = this.app.departmentRooms.get(department);
+            if (!departmentRoom) {
+                return;
+            }
+            const departmentMessageBuilder = await modify.getCreator().startMessage()
+                .setSender(appUser as IUser)
+                .setUsernameAlias(this.app.zohoName)
+                .setEmojiAvatar(this.app.zohoEmojiAvatar)
+                .setRoom(departmentRoom)
+                .setText("*Out of Office*")
+                .addAttachment({
+                    fields,
+                    title: { value: `${(leave.today.length) + (leave.holidays.length) + (leave.birthdays.length)} today` },
+                    collapsed: false,
+                });
 
-        for (const attachment of attachments) {
-            messageBuilder.addAttachment(attachment);
-        }
+            await modify.getCreator().finish(departmentMessageBuilder);
+        })
 
-        modify.getCreator().finish(messageBuilder);
+        mainZohoRoomMessageBuilder.setAttachments(attachments);
+
+        modify.getCreator().finish(mainZohoRoomMessageBuilder);
     }
 }

@@ -5,6 +5,7 @@ export enum AppSetting {
     PeopleSecret = 'people_secret',
     PeopleRefreshToken = 'people_refresh_token',
     ZohoRoom = 'zoho_room',
+    DepartmentRoomsJson = 'department_rooms_json'
 }
 
 export const settings: Array<ISetting> = [
@@ -14,8 +15,8 @@ export const settings: Array<ISetting> = [
         packageValue: '',
         required: true,
         public: true,
-        i18nLabel: 'people_client_id',
-        i18nDescription: 'people_client_id_description',
+        i18nLabel: AppSetting.PeopleClientId,
+        i18nDescription: `${AppSetting.PeopleClientId}_description`,
     },
     {
         id: AppSetting.PeopleSecret,
@@ -23,8 +24,8 @@ export const settings: Array<ISetting> = [
         packageValue: '',
         required: true,
         public: true,
-        i18nLabel: 'people_secret',
-        i18nDescription: 'people_secret_description',
+        i18nLabel: AppSetting.PeopleSecret,
+        i18nDescription: `${AppSetting.PeopleSecret}_description`,
     },
     {
         id: AppSetting.PeopleRefreshToken,
@@ -32,8 +33,8 @@ export const settings: Array<ISetting> = [
         packageValue: '',
         required: true,
         public: true,
-        i18nLabel: 'people_refresh_token',
-        i18nDescription: 'people_refresh_token_description',
+        i18nLabel: AppSetting.PeopleRefreshToken,
+        i18nDescription: `${AppSetting.PeopleRefreshToken}_description`,
     },
     {
         id: AppSetting.ZohoRoom,
@@ -41,7 +42,16 @@ export const settings: Array<ISetting> = [
         packageValue: '',
         required: true,
         public: true,
-        i18nLabel: 'zoho_room',
-        i18nDescription: 'zoho_room_description',
+        i18nLabel: AppSetting.ZohoRoom,
+        i18nDescription: `${AppSetting.ZohoRoom}_description`,
+    },
+    {
+        id: AppSetting.DepartmentRoomsJson,
+        type: SettingType.STRING,
+        packageValue: '',
+        required: false,
+        public: true,
+        i18nLabel: AppSetting.DepartmentRoomsJson,
+        i18nDescription: `${AppSetting.DepartmentRoomsJson}_description`,
     },
 ];

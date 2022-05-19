@@ -1,14 +1,14 @@
 import { IModify, IRead } from '@rocket.chat/apps-engine/definition/accessors';
 import { IRoom, RoomType } from '@rocket.chat/apps-engine/definition/rooms';
 
-import { ZohoApp } from './ZohoApp';
+import { ZohoApp } from '../ZohoApp';
 
 export function formatDate(date: Date): string {
-    return `${ date.getFullYear() }-${ (date.getMonth() < 9 ? '0' : '') + (date.getMonth() + 1) }-${ (date.getDate() < 10 ? '0' : '') + date.getDate() }`;
+    return `${date.getFullYear()}-${(date.getMonth() < 9 ? '0' : '') + (date.getMonth() + 1)}-${(date.getDate() < 10 ? '0' : '') + date.getDate()}`;
 }
 
 export function getMonthAndDay(date: Date): string {
-    return `${ (date.getMonth() < 9 ? '0' : '') + (date.getMonth() + 1) }-${ (date.getDate() < 10 ? '0' : '') + date.getDate() }`;
+    return `${(date.getMonth() < 9 ? '0' : '') + (date.getMonth() + 1)}-${(date.getDate() < 10 ? '0' : '') + date.getDate()}`;
 }
 
 export function isDateBetween(date: Date, from: Date, to?: Date): boolean {

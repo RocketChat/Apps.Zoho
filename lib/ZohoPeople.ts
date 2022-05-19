@@ -1,6 +1,6 @@
 import { IHttpRequest, IHttpResponse, RequestMethod } from "@rocket.chat/apps-engine/definition/accessors";
 import { IApp } from "@rocket.chat/apps-engine/definition/IApp";
-import { AppSetting } from "../settings";
+import { AppSetting } from "../settings/settings";
 
 export class ZohoPeople {
     private token: string = '';

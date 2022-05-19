@@ -21,8 +21,9 @@ import { ZohoCommand } from './commands/ZohoCommand';
 import { BirthdayEndpoint } from './endpoints/Birthday';
 import { AnniversaryEndpoint } from './endpoints/Anniversary';
 import { WhosOutEndpoint } from './endpoints/WhosOut';
-import { AppSetting, settings } from './settings';
+import { AppSetting, settings } from './settings/settings';
 import { PeopleCache } from './lib/PeopleCache';
+import { IUser } from '@rocket.chat/apps-engine/definition/users';
 
 export class ZohoApp extends App {
 
@@ -71,6 +72,11 @@ export class ZohoApp extends App {
      */
     public readonly peopleCache: PeopleCache;
 
+    /**
+     * Each department should have a default room
+     */
+    public readonly departmentRooms: Map<string, IRoom> = new Map<string, IRoom>();
+
     constructor(info: IAppInfo, logger: ILogger, accessors: IAppAccessors) {
         super(info, logger, accessors);
         this.zohoPeople = new ZohoPeople(this);
@@ -89,6 +95,24 @@ export class ZohoApp extends App {
      */
     public async onEnable(environmentRead: IEnvironmentRead, configModify: IConfigurationModify): Promise<boolean> {
         this.zohoRoomId = await environmentRead.getSettings().getValueById(AppSetting.ZohoRoom);
+        try {
+            const departmentRoomsObject: Record<string, IRoom['id']> = JSON.parse(await environmentRead.getSettings().getValueById(AppSetting.DepartmentRoomsJson));
+            Object.entries(departmentRoomsObject).forEach(async ([department, roomId]) => {
+                const room = await this.getAccessors().reader.getRoomReader().getById(roomId);
+                if (!room) {
+                    return;
+                }
+                const members = await this.getAccessors().reader.getRoomReader().getMembers(roomId);
+                if (!members.find(async (member) => member.id === this.getID())) {
+                    this.getLogger().debug(`app is not a member of ${room.slugifiedName}, skipping ${department} notifications`);
+                    return;
+                }
+                this.departmentRooms.set(department, room);
+            })
+        } catch (err) {
+            this.getLogger().warn('invalid value for setting', AppSetting.DepartmentRoomsJson);
+            this.getLogger().warn('out notifications will only be sent to the main Zoho Room');
+        }
         if (this.zohoRoomId) {
             this.zohoRoom = await this.getAccessors().reader.getRoomReader().getById(this.zohoRoomId) as IRoom;
         } else {
