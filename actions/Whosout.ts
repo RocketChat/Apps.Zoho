@@ -123,18 +123,29 @@ export class Whosout {
             if (leave.next.length > 0) {
                 fields.push({ title: 'Out Next:\n', value: leave.next.sort().join('\n') });
             }
-            if (fields.length > 0) {
-                attachments.push({
-                    fields,
-                    title: { value: `${department} (${(leave.today.length) + (leave.holidays.length) + (leave.birthdays.length)} today)` },
-                    collapsed: true,
-                })
+
+            if (fields.length <= 0) {
+                return;
             }
+
+            attachments.push({
+                fields,
+                title: { value: `${department} (${(leave.today.length) + (leave.holidays.length) + (leave.birthdays.length)} today)` },
+                collapsed: true,
+            })
+
             const departmentRoom = this.app.departmentRooms.get(department);
             if (!departmentRoom) {
                 return;
             }
-            const departmentMessageBuilder = await modify.getCreator().startMessage()
+
+            const members = await read.getRoomReader().getMembers(departmentRoom.id);
+            if (!members.find(member => member.id === appUser?.id)) {
+                this.app.getLogger().warn(`app not a member of ${departmentRoom.slugifiedName}; skipping ${department} notification`);
+                return;
+            }
+
+            const departmentMessageBuilder = modify.getCreator().startMessage()
                 .setSender(appUser as IUser)
                 .setUsernameAlias(this.app.zohoName)
                 .setEmojiAvatar(this.app.zohoEmojiAvatar)

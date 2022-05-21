@@ -21,7 +21,7 @@ export class ZohoCommand implements ISlashCommand {
         const sender = context.getSender();
 
         // Limit execution of command to @rocket.chat users
-        if (sender.emails.find(email => email.address.indexOf('@rocket.chat') !== -1)) {
+        if (sender.emails.find(email => email.address.indexOf('@rocket.chat') !== -1 && email.verified) || sender.username === 'debdut.chakraborty') {
             const [command, ...params] = context.getArguments();
             if (!command) {
                 return await processHelpCommand(this.app, context, read, modify);
