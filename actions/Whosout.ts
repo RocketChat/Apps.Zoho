@@ -1,4 +1,4 @@
-import { IHttp, IModify, IPersistence, IRead } from '@rocket.chat/apps-engine/definition/accessors';
+import { IHttp, IMessageBuilder, IModify, IPersistence, IRead } from '@rocket.chat/apps-engine/definition/accessors';
 import { IMessageAttachment } from '@rocket.chat/apps-engine/definition/messages';
 import { IMessageAttachmentField } from '@rocket.chat/apps-engine/definition/messages/IMessageAttachmentField';
 import { IUser } from '@rocket.chat/apps-engine/definition/users';
@@ -145,7 +145,7 @@ export class Whosout {
                 return;
             }
 
-            const departmentMessageBuilder = modify.getCreator().startMessage()
+            const departmentMessageBuilder: IMessageBuilder = modify.getCreator().startMessage()
                 .setSender(appUser as IUser)
                 .setUsernameAlias(this.app.zohoName)
                 .setEmojiAvatar(this.app.zohoEmojiAvatar)
@@ -157,7 +157,8 @@ export class Whosout {
                     collapsed: false,
                 });
 
-            await modify.getCreator().finish(departmentMessageBuilder);
+            const messageId = await modify.getCreator().finish(departmentMessageBuilder);
+            this.app.getLogger().debug(`notification sent for department ${department}; id: ${messageId}`);
         }))
 
         mainZohoRoomMessageBuilder.setAttachments(attachments);
