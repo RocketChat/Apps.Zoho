@@ -178,7 +178,7 @@ export class ZohoApp extends App {
                 this.departmentRooms.set(department, room);
             }))
         } catch (err) {
-            console.error(err);
+            this.getLogger().error(err);
             this.getLogger().warn('invalid value for setting', AppSetting.DepartmentRoomsJson);
             this.getLogger().warn('out notifications will only be sent to the main Zoho Room');
         }
