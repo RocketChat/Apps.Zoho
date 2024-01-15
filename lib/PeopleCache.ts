@@ -17,7 +17,6 @@ export class PeopleCache {
             return { employees: this.employees, leaves: this.leaves, holidays: this.holidays, birthdays: this.birthdays };
         }
 
-        this._expire = Date.now() + this._expirationTime;
         const date = new Date();
 
         await this.app.getLogger().log('Loading People Cache');
@@ -47,6 +46,7 @@ export class PeopleCache {
         }
 
         // await this.app.getLogger().log('Setting People Cache', employees);
+        this._expire = Date.now() + this._expirationTime;
         this.setCache({ employees, leaves, holidays, birthdays });
         return { employees, leaves, holidays, birthdays };
     }
