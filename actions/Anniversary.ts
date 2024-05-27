@@ -52,7 +52,7 @@ export class Anniversary {
                 let username = employee['Open'].split('/');
                 username = username[username.length - 1];
                 if (!username) {
-                    username = employee['Email ID'].split('@')[0];
+                    username = employee['EmailID'].split('@')[0];
                 }
                 const anniversary: IAnniversary = { name, username, day: parseInt(day, 10), month: parseInt(month, 10), years: new Date().getFullYear() - parseInt(year, 10) };
                 if (anniversary.month === new Date().getMonth() + 1 && anniversary.day === new Date().getDate()) {
@@ -77,7 +77,7 @@ export class Anniversary {
 
                     const message = messages[random(0, messages.length - 1)]
                         .replace('{username}', usernames)
-                        .replace('{is_are}', users[years].length > 1 ? 'are' : 'is')
+                        .replace('{is_are}', usernames.indexOf('@') !== -1 ? 'are' : 'is')
                         .replace('{years}', years)
                         .replace('{_years}', parseInt(years, 10) > 1 ? 'years' : 'year');
 
