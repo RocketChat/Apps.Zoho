@@ -28,6 +28,11 @@ import { IUser } from '@rocket.chat/apps-engine/definition/users';
 export class ZohoApp extends App {
 
     /**
+     * zoho app user
+     */
+    public zohoAppUser: IUser
+
+    /**
      * The bot username alias
      */
     public zohoName: string = 'Zorro';
@@ -77,6 +82,8 @@ export class ZohoApp extends App {
      */
     public readonly departmentRooms: Map<string, IRoom> = new Map<string, IRoom>();
 
+    private applogger: ILogger;
+
     constructor(info: IAppInfo, logger: ILogger, accessors: IAppAccessors) {
         super(info, logger, accessors);
         this.zohoPeople = new ZohoPeople(this);
@@ -84,6 +91,7 @@ export class ZohoApp extends App {
         this.whosout = new Whosout(this);
         this.birthday = new Birthday(this);
         this.anniversary = new Anniversary(this);
+        this.applogger = logger;
     }
 
     /**
@@ -94,32 +102,17 @@ export class ZohoApp extends App {
      * @param configModify
      */
     public async onEnable(environmentRead: IEnvironmentRead, configModify: IConfigurationModify): Promise<boolean> {
-        this.zohoRoomId = await environmentRead.getSettings().getValueById(AppSetting.ZohoRoom);
-        try {
-            const departmentRoomsObject: Record<string, IRoom['id']> = JSON.parse(await environmentRead.getSettings().getValueById(AppSetting.DepartmentRoomsJson));
-            Object.entries(departmentRoomsObject).forEach(async ([department, roomId]) => {
-                const room = await this.getAccessors().reader.getRoomReader().getById(roomId);
-                if (!room) {
-                    return;
-                }
-                const members = await this.getAccessors().reader.getRoomReader().getMembers(roomId);
-                if (!members.find((member) => member.id === this.getID())) {
-                    this.getLogger().debug(`app is not a member of ${room.slugifiedName}, skipping ${department} notifications`);
-                    return;
-                }
-                this.departmentRooms.set(department, room);
-            })
-        } catch (err) {
-            this.getLogger().warn('invalid value for setting', AppSetting.DepartmentRoomsJson);
-            this.getLogger().warn('out notifications will only be sent to the main Zoho Room');
-        }
-        if (this.zohoRoomId) {
-            this.zohoRoom = await this.getAccessors().reader.getRoomReader().getById(this.zohoRoomId) as IRoom;
-        } else {
+        this.zohoAppUser = await this.getAccessors().reader.getUserReader().getAppUser(this.getID()) as IUser;
+        if (!this.zohoAppUser) {
+            this.applogger.error('app user not detected')
             return false;
         }
+
+        const zohoRoomId = await environmentRead.getSettings().getValueById(AppSetting.ZohoRoom);
+        const departmentRoomsJson = await environmentRead.getSettings().getValueById(AppSetting.DepartmentRoomsJson);
+        await this.verifyZohoDepartmentRooms(departmentRoomsJson);
         await this.peopleCache.load();
-        return true;
+        return this.verifyZohoRoomSetting(zohoRoomId);
     }
 
     /**
@@ -133,10 +126,10 @@ export class ZohoApp extends App {
     public async onSettingUpdated(setting: ISetting, configModify: IConfigurationModify, read: IRead, http: IHttp): Promise<void> {
         switch (setting.id) {
             case AppSetting.ZohoRoom:
-                this.zohoRoomId = setting.value;
-                if (this.zohoRoomId) {
-                    this.zohoRoom = await this.getAccessors().reader.getRoomReader().getByName(this.zohoRoomId) as IRoom;
-                }
+                await this.verifyZohoRoomSetting(setting.value);
+                break;
+            case AppSetting.DepartmentRoomsJson:
+                await this.verifyZohoDepartmentRooms(setting.value);
                 break;
         }
     }
@@ -157,5 +150,38 @@ export class ZohoApp extends App {
 
         // Slash Commands
         await configuration.slashCommands.provideSlashCommand(new ZohoCommand(this));
+    }
+
+    private async verifyZohoRoomSetting(zohoRoomId?: IRoom['id']): Promise<boolean> {
+        if (!zohoRoomId) {
+            this.applogger.error(AppSetting.ZohoRoom, 'setting not found');
+            return false;
+        }
+
+        this.zohoRoom = await this.getAccessors().reader.getRoomReader().getById(zohoRoomId) as IRoom;
+        if (!this.zohoRoom) {
+            this.applogger.error(`no room found with roomId: ${zohoRoomId}`);
+            return false;
+        }
+
+        return true;
+    }
+
+    private async verifyZohoDepartmentRooms(departmentRoomsJson: string): Promise<boolean> {
+        try {
+            const departmentRoomsObject: Record<string, IRoom['id']> = JSON.parse(departmentRoomsJson);
+            await Promise.all(Object.entries(departmentRoomsObject).map(async ([department, roomId]) => {
+                const room = await this.getAccessors().reader.getRoomReader().getById(roomId);
+                if (!room) {
+                    return;
+                }
+                this.departmentRooms.set(department, room);
+            }))
+        } catch (err) {
+            this.getLogger().error(err);
+            this.getLogger().warn('invalid value for setting', AppSetting.DepartmentRoomsJson);
+            this.getLogger().warn('out notifications will only be sent to the main Zoho Room');
+        }
+        return true;
     }
 }
