@@ -50,7 +50,7 @@ export class Whosout {
                     const amount = leave['Daystaken'];
                     const department = person['Department'] || '-';
                     if (!departmentLeaves[department]) {
-                        departmentLeaves[department] = { today: [], next: [], holidays: [], birthdays: [] };
+                        departmentLeaves[department] = { today: [], next: [], holidays: [] };
                     }
 
                     let info = `, ${amount.replace('.0', '')} ${leave.Unit.toLowerCase()}${parseInt(amount) > 1 ? 's' : ''}${leave.Unit === 'Hour' ? '' : `, until ${new Date(leave.To).toString().substr(0, 10)}`}`;
@@ -74,19 +74,10 @@ export class Whosout {
                 const holidayName = holiday.Name.substring(holiday.Name.lastIndexOf(':') + 1);
                 const department = employee['Department'] || '-';
                 if (!departmentLeaves[department]) {
-                    departmentLeaves[department] = { today: [], next: [], holidays: [], birthdays: [] };
+                    departmentLeaves[department] = { today: [], next: [], holidays: [] };
                 }
                 departmentLeaves[department].holidays.push(`${employee['Website_Display_Name'] || employee['FirstName'] + ' ' + employee['LastName']}, ${holidayName}`)
             }
-        }
-
-        for (const employeeId of Object.keys(this.app.peopleCache.birthdays.today)) {
-            const employee = people[employeeId];
-            const department = employee['Department'] || '-';
-            if (!departmentLeaves[department]) {
-                departmentLeaves[department] = { today: [], next: [], holidays: [], birthdays: [] };
-            }
-            departmentLeaves[department].birthdays.push(`${employee['Website_Display_Name'] || employee['FirstName'] + ' ' + employee['LastName']}`)
         }
 
         // departmentLeaves: Record<department, {}>
@@ -117,16 +108,13 @@ export class Whosout {
             if (leave.holidays.length > 0) {
                 fields.push({ title: 'On a Holiday:\n', value: leave.holidays.sort().join('\n') });
             }
-            if (leave.birthdays.length > 0) {
-                fields.push({ title: 'Birthday:\n', value: leave.birthdays.sort().join('\n') });
-            }
             if (leave.next.length > 0) {
                 fields.push({ title: 'Out Next:\n', value: leave.next.sort().join('\n') });
             }
             if (fields.length > 0) {
                 attachments.push({
                     fields,
-                    title: { value: `${department} (${(leave.today.length) + (leave.holidays.length) + (leave.birthdays.length)} today)` },
+                    title: { value: `${department} (${(leave.today.length) + (leave.holidays.length)} today)` },
                     collapsed: true,
                 })
             }
@@ -142,7 +130,7 @@ export class Whosout {
                 .setText("*Out of Office*")
                 .addAttachment({
                     fields,
-                    title: { value: `${(leave.today.length) + (leave.holidays.length) + (leave.birthdays.length)} today` },
+                    title: { value: `${(leave.today.length) + (leave.holidays.length) } today` },
                     collapsed: false,
                 });
 
