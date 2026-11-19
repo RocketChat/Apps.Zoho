@@ -22,7 +22,8 @@ export class PeopleCache {
         await this.app.getLogger().log('Loading People Cache');
         const employees = await this.app.zohoPeople.getEmployees();
         const leaves = await this.app.zohoPeople.getLeaves(new Date());
-        const _holidays = await this.app.zohoPeople.getHolidays(new Date());
+        // Through today + 3 so Whosout can report the next business day (Monday when run on a Friday)
+        const _holidays = await this.app.zohoPeople.getHolidays(date, new Date(date.getFullYear(), date.getMonth(), date.getDate() + 3));
 
         const holidays: any = {};
         const birthdays: any = { today: {}, month: {} };
