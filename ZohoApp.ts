@@ -50,27 +50,27 @@ export class ZohoApp extends App {
     /**
      * The whosout mechanism
      */
-    public readonly whosout: Whosout;
+    public whosout: Whosout;
 
     /**
      * The birthday mechanism
      */
-    public readonly birthday: Birthday;
+    public birthday: Birthday;
 
     /**
      * The anniversary mechanism
      */
-    public readonly anniversary: Anniversary;
+    public anniversary: Anniversary;
 
     /**
      * Zoho People API
      */
-    public readonly zohoPeople: ZohoPeople;
+    public zohoPeople: ZohoPeople;
 
     /**
      * Cache for Zoho People API results
      */
-    public readonly peopleCache: PeopleCache;
+    public peopleCache: PeopleCache;
 
     /**
      * Each department should have a default room
@@ -79,11 +79,17 @@ export class ZohoApp extends App {
 
     constructor(info: IAppInfo, logger: ILogger, accessors: IAppAccessors) {
         super(info, logger, accessors);
+    }
+
+    // Instances are created here, not in the constructor: rc-apps validates the package by calling the
+    // constructor in a sandbox whose require returns a single-export module's class instead of its exports
+    public async initialize(configurationExtend: IConfigurationExtend, environmentRead: IEnvironmentRead): Promise<void> {
         this.zohoPeople = new ZohoPeople(this);
         this.peopleCache = new PeopleCache(this);
         this.whosout = new Whosout(this);
         this.birthday = new Birthday(this);
         this.anniversary = new Anniversary(this);
+        await super.initialize(configurationExtend, environmentRead);
     }
 
     /**

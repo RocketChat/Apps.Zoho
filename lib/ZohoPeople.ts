@@ -1,7 +1,7 @@
 import { IHttpRequest, IHttpResponse, RequestMethod } from "@rocket.chat/apps-engine/definition/accessors";
 import { IApp } from "@rocket.chat/apps-engine/definition/IApp";
 import { AppSetting } from "../settings/settings";
-import { formatDate } from "./utils";
+import { formatDate } from "./dates";
 
 export class ZohoPeople {
     private token: string = '';
@@ -76,12 +76,12 @@ export class ZohoPeople {
     public async getLeaves(date: Date, sIndex = 0, limit = 200): Promise<any> {
         // Fetch every leave overlapping the reported days (today through next business day, up to +3 on Fridays).
         // Bounds are padded by a day because Zoho's Before/After inclusivity is unclear; Whosout filters exact dates.
-        const formatDate = (offset: number) => {
+        const zohoDate = (offset: number) => {
             const parts = new Date(date.getFullYear(), date.getMonth(), date.getDate() + offset).toDateString().split(' ');
             return `${ parts[2] }-${ parts[1] }-${ parts[3] }`;
         };
-        const startsBefore = formatDate(4);
-        const endsAfter = formatDate(-1);
+        const startsBefore = zohoDate(4);
+        const endsAfter = zohoDate(-1);
 
         console.log('Getting leaves starting before', startsBefore, 'and ending after', endsAfter);
 

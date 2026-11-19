@@ -3,7 +3,8 @@ import { IMessageAttachment } from '@rocket.chat/apps-engine/definition/messages
 import { IMessageAttachmentField } from '@rocket.chat/apps-engine/definition/messages/IMessageAttachmentField';
 import { IUser } from '@rocket.chat/apps-engine/definition/users';
 
-import { formatDate, getDirect, isDateBetween, parseDate } from '../lib/utils';
+import { formatDate, isDateBetween, parseDate } from '../lib/dates';
+import { getDirect } from '../lib/utils';
 import { ZohoApp } from '../ZohoApp';
 
 export class Whosout {
