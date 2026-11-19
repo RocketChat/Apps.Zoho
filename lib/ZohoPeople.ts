@@ -1,6 +1,7 @@
 import { IHttpRequest, IHttpResponse, RequestMethod } from "@rocket.chat/apps-engine/definition/accessors";
 import { IApp } from "@rocket.chat/apps-engine/definition/IApp";
 import { AppSetting } from "../settings/settings";
+import { formatDate } from "./utils";
 
 export class ZohoPeople {
     private token: string = '';
@@ -73,14 +74,16 @@ export class ZohoPeople {
     }
 
     public async getLeaves(date: Date, sIndex = 0, limit = 200): Promise<any> {
-        date.setDate(date.getDate() + 1);
-        const toParts = date.toDateString().split(' ');
-        const to = `${ toParts[2] }-${ toParts[1] }-${ toParts[3] }`;
-        date.setMonth(date.getMonth() - 2);
-        const fromParts = date.toDateString().split(' ');
-        const from = `${ fromParts[2] }-${ fromParts[1] }-${ fromParts[3] }`;
+        // Fetch every leave overlapping the reported days (today through next business day, up to +3 on Fridays).
+        // Bounds are padded by a day because Zoho's Before/After inclusivity is unclear; Whosout filters exact dates.
+        const formatDate = (offset: number) => {
+            const parts = new Date(date.getFullYear(), date.getMonth(), date.getDate() + offset).toDateString().split(' ');
+            return `${ parts[2] }-${ parts[1] }-${ parts[3] }`;
+        };
+        const startsBefore = formatDate(4);
+        const endsAfter = formatDate(-1);
 
-        console.log('Getting leaves from', from, 'to', to);
+        console.log('Getting leaves starting before', startsBefore, 'and ending after', endsAfter);
 
         const leaves: any = {};
         let hasMoreRecords = true;
@@ -88,9 +91,9 @@ export class ZohoPeople {
             const result = await this.request(RequestMethod.GET, 'forms/leave/getRecords', {
                 sIndex,
                 limit,
-                searchParams: `{searchField:From,searchOperator:Between,searchText:'${ from };${ to }'}`
+                searchParams: `{searchField:'From',searchOperator:'Before',searchText:'${ startsBefore }'}|{searchField:'To',searchOperator:'After',searchText:'${ endsAfter }'}`
             }, {});
-            if (hasMoreRecords) {
+            if (result && result.data && result.data.response && result.data.response.result) {
                 for (const record of result.data.response.result) {
                     const leave: any = (Object.values(record)[0] as any)[0];
                     const recordFrom = leave.From.split('-');
@@ -106,15 +109,14 @@ export class ZohoPeople {
         return leaves;
     }
 
-    public async getHolidays(date: Date, sIndex = 0): Promise<any> {
-        const dateString = date.toISOString().split('T')[0];
+    public async getHolidays(from: Date, to: Date, sIndex = 0): Promise<any> {
         const holidays: any = {};
         let hasMoreRecords = true;
         while (hasMoreRecords) {
             const result = await this.request(RequestMethod.GET, 'leave/v2/holidays/get', {
                 location: 'ALL',
-                from: dateString,
-                to: dateString,
+                from: formatDate(from),
+                to: formatDate(to),
                 dateFormat: 'yyyy-MM-dd',
                 sIndex
             }, {});

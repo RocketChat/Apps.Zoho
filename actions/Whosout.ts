@@ -3,7 +3,7 @@ import { IMessageAttachment } from '@rocket.chat/apps-engine/definition/messages
 import { IMessageAttachmentField } from '@rocket.chat/apps-engine/definition/messages/IMessageAttachmentField';
 import { IUser } from '@rocket.chat/apps-engine/definition/users';
 
-import { getDirect, isDateBetween } from '../lib/utils';
+import { formatDate, getDirect, isDateBetween, parseDate } from '../lib/utils';
 import { ZohoApp } from '../ZohoApp';
 
 export class Whosout {
@@ -41,19 +41,21 @@ export class Whosout {
         }
 
         const departmentLeaves: Record<string, any> = {};
+        const onLeaveToday = new Set<string>();
+        const onLeaveNext = new Set<string>();
         for (const employeeId of Object.keys(this.app.peopleCache.leaves)) {
             const person = people[employeeId];
             for (const leave of this.app.peopleCache.leaves[employeeId]) {
                 if (person && (leave.ApprovalStatus === 'Approved' || leave.ApprovalStatus === 'Pending')) {
-                    const from = new Date(leave.From);
-                    const to = new Date(leave.To);
+                    const from = parseDate(leave.From);
+                    const to = parseDate(leave.To);
                     const amount = leave['Daystaken'];
                     const department = person['Department'] || '-';
                     if (!departmentLeaves[department]) {
                         departmentLeaves[department] = { today: [], next: [], holidays: [] };
                     }
 
-                    let info = `, ${amount.replace('.0', '')} ${leave.Unit.toLowerCase()}${parseInt(amount) > 1 ? 's' : ''}${leave.Unit === 'Hour' ? '' : `, until ${new Date(leave.To).toString().substr(0, 10)}`}`;
+                    let info = `, ${amount.replace('.0', '')} ${leave.Unit.toLowerCase()}${parseInt(amount) > 1 ? 's' : ''}${leave.Unit === 'Hour' ? '' : `, until ${to.toString().substr(0, 10)}`}`;
                     if (leave.ApprovalStatus === 'Pending') {
                         info += ' _(pending)_';
                     }
@@ -61,22 +63,36 @@ export class Whosout {
 
                     if (isDateBetween(today, from, to)) {
                         departmentLeaves[department].today.push(who);
+                        onLeaveToday.add(employeeId);
                     } else if (isDateBetween(next, from, to)) {
                         departmentLeaves[department].next.push(who);
+                    }
+                    if (isDateBetween(next, from, to)) {
+                        onLeaveNext.add(employeeId);
                     }
                 }
             }
         }
 
+        const todayString = formatDate(today);
+        const nextString = formatDate(next);
         for (const employeeId of Object.keys(this.app.peopleCache.holidays)) {
             const employee = people[employeeId];
+            if (!employee) {
+                continue;
+            }
             for (const holiday of this.app.peopleCache.holidays[employeeId]) {
                 const holidayName = holiday.Name.substring(holiday.Name.lastIndexOf(':') + 1);
+                const who = `${employee['Website_Display_Name'] || employee['FirstName'] + ' ' + employee['LastName']}, ${holidayName}`;
                 const department = employee['Department'] || '-';
                 if (!departmentLeaves[department]) {
                     departmentLeaves[department] = { today: [], next: [], holidays: [] };
                 }
-                departmentLeaves[department].holidays.push(`${employee['Website_Display_Name'] || employee['FirstName'] + ' ' + employee['LastName']}, ${holidayName}`)
+                if (holiday.Date === todayString && !onLeaveToday.has(employeeId)) {
+                    departmentLeaves[department].holidays.push(who);
+                } else if (holiday.Date === nextString && !onLeaveNext.has(employeeId)) {
+                    departmentLeaves[department].next.push(`${who} _(holiday)_`);
+                }
             }
         }
 
